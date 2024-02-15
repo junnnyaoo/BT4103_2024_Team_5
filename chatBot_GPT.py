@@ -1,4 +1,6 @@
 import os
+import prompt_template
+from prompt_template import template_2
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from langchain import OpenAI, ConversationChain, LLMChain, PromptTemplate
@@ -9,16 +11,23 @@ from langchain.memory import ConversationBufferMemory
 # If using local environ, replace with app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 app = App(token=os.getenv("SLACK_BOT_TOKEN")) 
 api_key = os.getenv("OPENAI_API_KEY")
+template_2 = template_2
 
 #Langchain implementation
-template = """Assistant is a large language model trained by OpenAI.
+template = """ You are speaking to a professional who does not have much time, do an informative summary in 7 sentences maximum and keep the answer concise.
+    If you do not know the title or link or date, just state TBC
+    Go through the information and make a summary of the information in this following format with their answers: 
 
-    Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+    Title: <Title Name>
+    Website Link: <Link of Website>
+    Date of Article: <Get the latest date of publication, regardless of update or publish>
+    Names to note: <Names of Company and people mentioned within the article>
+    Key Topic: <Key topic of this article>
+    Sentiment: <conduct sentiment analysis and let them know the sentiment>
+    Trends & Statistics: <Include any trends and statistics found, make it short and do not repeat it in summary>
 
-    Assistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.
-
-    Overall, Assistant is a powerful tool that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist.
-
+    Summary: <The summarised version of the article>
+    
     {history}
     Human: {human_input}
     Assistant:"""
