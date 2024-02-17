@@ -23,9 +23,6 @@ app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 api_key = os.getenv("OPENAI_API_KEY")
 template_2 = template_2
 
-channel_id = "C06G0KQCUDS"
-hy_id = "U06FTMW670E"
-
 #Langchain implementation
 template = """ You are speaking to a professional who does not have much time, do an informative summary in 7 sentences maximum and keep the answer concise.
     If you do not know the title or link or date, just state TBC
@@ -65,7 +62,7 @@ prompt = PromptTemplate(
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
-def schedule_news(hour, minute, second, next_days):
+def schedule_news(hour, minute, second, next_days, id):
     
     #Create a schedule using datetime library
     tomorrow = datetime.date.today()  + datetime.timedelta(days = next_days)
@@ -74,7 +71,7 @@ def schedule_news(hour, minute, second, next_days):
     try:
         # Call the chat.scheduleMessage method using the WebClient
         result = client.chat_scheduleMessage(
-            channel=hy_id,
+            channel=id,
             #here will be the relevent news update
             text="News summarisation update here",
             post_at=schedule_timestamp
@@ -145,21 +142,6 @@ news_scheduler_blocks = [
 		}
 	]
 
-#for channels
-@app.event("message")
-def start(message, say):
-    # client.chat_postMessage(
-    #         channel= hy_id,
-    #         text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
-    #         blocks= news_scheduler_blocks,
-    #         as_user =True
-    # )
-    print(message)
-    say(channel= message['user'],
-            text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
-            blocks= news_scheduler_blocks,
-            as_user =True)
-       
 #for direct msg    
 @app.message("start newsbot")
 def start(message, say):
@@ -170,26 +152,32 @@ def start(message, say):
     #         as_user =True
     # )
     print(message)
-    say(channel= message['user'],
-            text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
-            blocks= news_scheduler_blocks,
-            as_user =True)
+    if message['channel_type'] == 'channel':
+        say(channel= message['channel'],
+                text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
+                blocks= news_scheduler_blocks,
+                as_user =True)
+    else:
+        say(channel= message['user'],
+                text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
+                blocks= news_scheduler_blocks,
+                as_user =True)
+
 
 # listener will be called every time a block element with the action_id "Everyday" is triggered
 @app.action("1d")
-def update_message(ack, say):
+def update_message(ack, body, say):
     #acknowledge inform Slack that your app has received the request.
     ack()
     # Update the message to reflect the action
     say("Clicked Everyday")
     next_days = 0
-
     #for testing
     now = datetime.datetime.now()
     seconds = now.second
     minutes = now.minute
     seconds += 15
-
+    print(body)
     while next_days != 91:
         #---------- for testing -----------------
         #code will show 15 second later
@@ -200,12 +188,20 @@ def update_message(ack, say):
         print(now.hour)
         if seconds > 59:
             minutes += 1
-        if next_days == 5 or seconds > 59:
+            seconds = seconds - 60
+        if next_days == 5:
             break
-        schedule_news(now.hour, minutes, seconds, 0)
+        if body['channel']['name'] == 'directmessage':
+            schedule_news(now.hour, minutes, seconds, 0, body['user']['id'])
+        else:
+            schedule_news(now.hour, minutes, seconds, 0, body['channel']['id'])
 
         #---------- for deployment -----------------
-        # schedule_news(9, 0, 0, next_days)
+        # schedule_news(9, 0, 0, next_day, body['channel'])
+        # if body['channel']['name'] == 'directmessage':
+        #     schedule_news(9, 0, 0, next_day, body['user']['id'])
+        # else:
+        #     schedule_news(9, 0, 0, next_day, body['channel']['id'])
         next_days += 1
 
     #schedule the same news for other days everyday
