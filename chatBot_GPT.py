@@ -67,14 +67,15 @@ logger = logging.getLogger(__name__)
 
 def schedule_news(hour, minute, second, next_days):
     
-    #Create a schedule for everyday 
+    #Create a schedule using datetime library
     tomorrow = datetime.date.today()  + datetime.timedelta(days = next_days)
     scheduled_time = datetime.time(hour, minute, second)
     schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
     try:
         # Call the chat.scheduleMessage method using the WebClient
         result = client.chat_scheduleMessage(
-            channel=channel_id,
+            channel=hy_id,
+            #here will be the relevent news update
             text="News summarisation update here",
             post_at=schedule_timestamp
         )
@@ -96,10 +97,10 @@ def schedule_news(hour, minute, second, next_days):
 #     say("not connected to chatgpt, testing only")
 
 #--------------------------------------------------------------------------------------------------------------------
-#               Interactive message test
+#               Interactive message for scheduler
 #--------------------------------------------------------------------------------------------------------------------
 
-blocks = [
+news_scheduler_blocks = [
 		{
 			"type": "section",
 			"text": {
@@ -144,13 +145,35 @@ blocks = [
 		}
 	]
 
-
-client.chat_postMessage(
-        channel= channel_id,
-        text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
-        blocks= blocks,
-        as_user =True
-    )
+#for channels
+@app.event("message")
+def start(message, say):
+    # client.chat_postMessage(
+    #         channel= hy_id,
+    #         text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
+    #         blocks= news_scheduler_blocks,
+    #         as_user =True
+    # )
+    print(message)
+    say(channel= message['user'],
+            text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
+            blocks= news_scheduler_blocks,
+            as_user =True)
+       
+#for direct msg    
+@app.message("start newsbot")
+def start(message, say):
+    # client.chat_postMessage(
+    #         channel= hy_id,
+    #         text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
+    #         blocks= news_scheduler_blocks,
+    #         as_user =True
+    # )
+    print(message)
+    say(channel= message['user'],
+            text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
+            blocks= news_scheduler_blocks,
+            as_user =True)
 
 # listener will be called every time a block element with the action_id "Everyday" is triggered
 @app.action("1d")
