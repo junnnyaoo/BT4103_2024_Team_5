@@ -14,9 +14,6 @@ import logging
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-
-
-
 # Initializes your app with your bot token and socket mode handler
 # If using local environ, replace with app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 app = App(token=os.getenv("SLACK_BOT_TOKEN")) 
@@ -77,7 +74,9 @@ def schedule_news(hour, minute, second, next_days, id):
             post_at=schedule_timestamp
         )
         # Log the result
+        print("\nBelow is schedule msg result")
         logger.info(result)
+        print(result)
 
     except SlackApiError as e:
         logger.error("Error scheduling message: {}".format(e))
@@ -102,7 +101,7 @@ news_scheduler_blocks = [
 			"type": "section",
 			"text": {
 				"type": "plain_text",
-				"text": "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am)."
+				"text": "Please choose how frequently (every 1/7/14/30 days) you'd like to receive news updates (News will be posted at 9am)."
 			}
 		},
 		{
@@ -112,10 +111,10 @@ news_scheduler_blocks = [
 					"type": "button",
 					"text": {
 						"type": "plain_text",
-						"text": "Everyday"
+						"text": "1 Days"
 					},
 					"style": "primary",
-					"value": "click_me_123",
+					"value": "1 Days",
                     "action_id": "1d"
 				},
 				{
@@ -125,7 +124,7 @@ news_scheduler_blocks = [
 						"text": "7 Days"
 					},
 					"style": "primary",
-					"value": "click_me_123",
+					"value": "7 Days",
                     "action_id": "7d"
 				},
 				{
@@ -135,8 +134,18 @@ news_scheduler_blocks = [
 						"text": "14 Days"
 					},
 					"style": "primary",
-					"value": "click_me_123",
+					"value": "14 Days",
                     "action_id": "14d"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "30 Days"
+					},
+					"style": "primary",
+					"value": "30 Days",
+                    "action_id": "30d"
 				}
 			]
 		}
@@ -151,60 +160,108 @@ def start(message, say):
     #         blocks= news_scheduler_blocks,
     #         as_user =True
     # )
+    msg_channel = ''
     print(message)
-    if message['channel_type'] == 'channel':
-        say(channel= message['channel'],
-                text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
-                blocks= news_scheduler_blocks,
-                as_user =True)
-    else:
-        say(channel= message['user'],
-                text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
-                blocks= news_scheduler_blocks,
-                as_user =True)
+    # if message['channel_type'] == 'channel':
+    #     msg_channel = message['channel']
+    # else:
+    #     msg_channel = message['channel']
+    say(channel= message['channel'],
+            text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
+            blocks= news_scheduler_blocks,
+            as_user =True)
 
 
-# listener will be called every time a block element with the action_id "Everyday" is triggered
+# listener will be called every time a block element with these action_id is called
 @app.action("1d")
+@app.action("7d")
+@app.action("14d")
+@app.action("30d")
 def update_message(ack, body, say):
     #acknowledge inform Slack that your app has received the request.
     ack()
-    # Update the message to reflect the action
-    say("Clicked Everyday")
-    next_days = 0
+
+    #if user click this again it means he/she wants schedule to reset
+    #get list of scheduled msgs
+    scheduled_list = client.chat_scheduledMessages_list()['scheduled_messages']
+    
+    print("\nBelow is list of scheduled bef delete")
+    print(client.chat_scheduledMessages_list())
+
+    scheduled_msg_id_list = []
+    for msg in scheduled_list:
+        #append those that are in this channel
+        if msg['channel_id'] == body['channel']['id']:
+            scheduled_msg_id_list.append(msg['id'])
+    print("\nBelow is list of scheduled msg id list")
+    print(scheduled_msg_id_list)
+    # delete those msgs scheduled in this channel
+    for msg_id in scheduled_msg_id_list:
+        client.chat_deleteScheduledMessage(channel=body['channel']['id'],scheduled_message_id=msg_id)
+
+    print("\nBelow is list of scheduled after delete")
+    print(client.chat_scheduledMessages_list())
+
     #for testing
     now = datetime.datetime.now()
     seconds = now.second
-    minutes = now.minute
-    seconds += 15
+    minutes = now.minute + 6
+    print("\nBelow is body")
     print(body)
-    while next_days != 91:
+    count = 0
+
+    next_schedule, days_interval = 0, 0
+    if body['actions'][0]['value'] == '1 Days':
+        days_interval = 1
+    elif body['actions'][0]['value'] == '7 Days':
+        days_interval = 7
+    elif body['actions'][0]['value'] == '14 Days':
+        days_interval = 14
+    elif body['actions'][0]['value'] == '30 Days':
+        days_interval = 30
+    
+    if len(scheduled_msg_id_list) == 0:
+        say("We have received your schedule choices: News update every " + body['actions'][0]['value'])
+    else:
+        say("We have rescheduled your schedule choices: News update every " + body['actions'][0]['value'])
+
+    # max no. of schedule slack api allows is 120days
+    while next_schedule <= 30:
+
         #---------- for testing -----------------
         #code will show 15 second later
         #wont work if your time now is close to the next hour
-        seconds += 2
-        print(minutes)
-        print(seconds)
-        print(now.hour)
-        if seconds > 59:
-            minutes += 1
-            seconds = seconds - 60
-        if next_days == 5:
+        if count == 2:
             break
         if body['channel']['name'] == 'directmessage':
             schedule_news(now.hour, minutes, seconds, 0, body['user']['id'])
         else:
             schedule_news(now.hour, minutes, seconds, 0, body['channel']['id'])
+        count += 1
+    #     #---------- for deployment -----------------
+    #     # schedule_news(9, 0, 0, next_schedule, body['channel'])
+    #     # if body['channel']['name'] == 'directmessage':
+    #     #     schedule_news(9, 0, 0, next_schedule, body['user']['id'])
+    #     # else:
+    #     #     schedule_news(9, 0, 0, next_schedule, body['channel']['id'])
+    #     next_schedule += days_interval
+    print("\nBelow is list of scheduled after scheduling")
+    print(client.chat_scheduledMessages_list())
 
-        #---------- for deployment -----------------
-        # schedule_news(9, 0, 0, next_day, body['channel'])
-        # if body['channel']['name'] == 'directmessage':
-        #     schedule_news(9, 0, 0, next_day, body['user']['id'])
-        # else:
-        #     schedule_news(9, 0, 0, next_day, body['channel']['id'])
-        next_days += 1
+    # scheduled_msg_id_list = []
+    # scheduled_list = client.chat_scheduledMessages_list()['scheduled_messages']
+    # for msg in scheduled_list:
+    #     #append those that are in this channel
+    #     if msg['channel_id'] == body['channel']['id']:
+    #         scheduled_msg_id_list.append(msg['id'])
+    # print("\nBelow is list of scheduled msg id list")
+    # print(scheduled_msg_id_list)
+    # # delete those msgs scheduled in this channel
+    # for msg_id in scheduled_msg_id_list:
+    #     client.chat_deleteScheduledMessage(channel=body['channel']['id'],scheduled_message_id=msg_id)
 
-    #schedule the same news for other days everyday
+    # print("\nBelow is list of scheduled after delete")
+    # print(client.chat_scheduledMessages_list())
 
 # Start your app
 if __name__ == "__main__":
