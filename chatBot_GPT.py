@@ -59,6 +59,35 @@ prompt = PromptTemplate(
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
+# News items
+news_item_1 = (
+    "*Latest News:*\n"
+    "1. *Headline*: Biden announces new infrastructure plan to rebuild roads and bridges.\n"
+    "   *Summary*: President Biden unveils a $2 trillion infrastructure proposal aimed at modernizing the nation's transportation infrastructure and tackling climate change.\n"
+    "   *Source*: CNN\n"
+    "   *Timestamp*: 21st February 2024, 10:30 AM\n"
+    "   [Read more](link_to_full_article)\n\n"
+)
+
+news_item_2 = (
+    "2. *Headline*: SpaceX successfully launches crewed mission to the International Space Station.\n"
+    "   *Summary*: SpaceX Crew Dragon spacecraft carrying four astronauts docks with the ISS, marking another milestone in commercial spaceflight.\n"
+    "   *Source*: Reuters\n"
+    "   *Timestamp*: 20th February 2024, 3:45 PM\n"
+    "   [Read more](link_to_full_article)\n\n"
+)
+
+news_item_3 = (
+    "3. *Headline*: WHO warns of new variant spreading rapidly across Europe.\n"
+    "   *Summary*: World Health Organization alerts countries to the spread of a highly transmissible new variant of COVID-19 across several European nations.\n"
+    "   *Source*: BBC News\n"
+    "   *Timestamp*: 19th February 2024, 8:00 PM\n"
+    "   [Read more](link_to_full_article)\n\n"
+)
+
+# Concatenate news items
+news_example = news_item_1 + news_item_2 + news_item_3
+
 def schedule_news(hour, minute, second, next_days, id):
     
     #Create a schedule using datetime library
@@ -70,7 +99,7 @@ def schedule_news(hour, minute, second, next_days, id):
         result = client.chat_scheduleMessage(
             channel=id,
             #here will be the relevent news update
-            text="News summarisation update here",
+            text= news_example,
             post_at=schedule_timestamp
         )
         # Log the result
@@ -80,6 +109,7 @@ def schedule_news(hour, minute, second, next_days, id):
 
     except SlackApiError as e:
         logger.error("Error scheduling message: {}".format(e))
+
 #--------------------------------------------------------------------------------------------------------------------
 #               Interactive message for scheduler
 #--------------------------------------------------------------------------------------------------------------------
@@ -181,8 +211,8 @@ def update_message(ack, body, say):
 
     #for testing
     now = datetime.datetime.now()
-    seconds = now.second
-    minutes = now.minute + 6
+    seconds = now.second + 25
+    minutes = now.minute
     print("\nBelow is body")
     print(body)
     count = 0
@@ -208,13 +238,17 @@ def update_message(ack, body, say):
         #---------- for testing -----------------
         #code will show 15 second later
         #wont work if your time now is close to the next hour
-        if count == 2:
+        if seconds >= 60:
+            minutes += 1
+            seconds = seconds - 60
+        if count == 1:
             break
         if body['channel']['name'] == 'directmessage':
             schedule_news(now.hour, minutes, seconds, 0, body['user']['id'])
         else:
             schedule_news(now.hour, minutes, seconds, 0, body['channel']['id'])
         count += 1
+        
     #     #---------- for deployment -----------------
     #     # schedule_news(9, 0, 0, next_schedule, body['channel'])
     #     # if body['channel']['name'] == 'directmessage':
