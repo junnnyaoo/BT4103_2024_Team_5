@@ -80,18 +80,6 @@ def schedule_news(hour, minute, second, next_days, id):
 
     except SlackApiError as e:
         logger.error("Error scheduling message: {}".format(e))
-
-#--------------------------------------------------------------------------------------------------------------------
-#               Alex code
-#--------------------------------------------------------------------------------------------------------------------
-
-#Message handler for Slack
-# @app.message(".*")
-# def messaage_handler(message, say, logger):
-#     print(message)
-#     # output = chatgpt_chain.predict(human_input = message['text'])   
-#     say("not connected to chatgpt, testing only")
-
 #--------------------------------------------------------------------------------------------------------------------
 #               Interactive message for scheduler
 #--------------------------------------------------------------------------------------------------------------------
@@ -154,23 +142,12 @@ news_scheduler_blocks = [
 #for direct msg    
 @app.message("start newsbot")
 def start(message, say):
-    # client.chat_postMessage(
-    #         channel= hy_id,
-    #         text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
-    #         blocks= news_scheduler_blocks,
-    #         as_user =True
-    # )
-    msg_channel = ''
     print(message)
-    # if message['channel_type'] == 'channel':
-    #     msg_channel = message['channel']
-    # else:
-    #     msg_channel = message['channel']
     say(channel= message['channel'],
             text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
             blocks= news_scheduler_blocks,
             as_user =True)
-
+    
 
 # listener will be called every time a block element with these action_id is called
 @app.action("1d")
@@ -245,23 +222,21 @@ def update_message(ack, body, say):
     #     # else:
     #     #     schedule_news(9, 0, 0, next_schedule, body['channel']['id'])
     #     next_schedule += days_interval
-    print("\nBelow is list of scheduled after scheduling")
+        
+    print("\nBelow is list of scheduled after deleting all other schedules and scheduling new ones")
     print(client.chat_scheduledMessages_list())
 
-    # scheduled_msg_id_list = []
-    # scheduled_list = client.chat_scheduledMessages_list()['scheduled_messages']
-    # for msg in scheduled_list:
-    #     #append those that are in this channel
-    #     if msg['channel_id'] == body['channel']['id']:
-    #         scheduled_msg_id_list.append(msg['id'])
-    # print("\nBelow is list of scheduled msg id list")
-    # print(scheduled_msg_id_list)
-    # # delete those msgs scheduled in this channel
-    # for msg_id in scheduled_msg_id_list:
-    #     client.chat_deleteScheduledMessage(channel=body['channel']['id'],scheduled_message_id=msg_id)
+#--------------------------------------------------------------------------------------------------------------------
+#               Alex code
+#--------------------------------------------------------------------------------------------------------------------
 
-    # print("\nBelow is list of scheduled after delete")
-    # print(client.chat_scheduledMessages_list())
+# Message handler for Slack
+@app.message(".*")
+def messaage_handler(message, say, logger):
+    print(message)
+    if message['channel_type'] != 'channel':
+        # output = chatgpt_chain.predict(human_input = message['text'])   
+        say("not connected to chatgpt, testing only")
 
 # Start your app
 if __name__ == "__main__":
