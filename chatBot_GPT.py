@@ -44,12 +44,12 @@ prompt = PromptTemplate(
     template=template
 )
 
-# chatgpt_chain = LLMChain(
-#     llm = OpenAI(model="gpt-3.5-turbo-instruct", temperature=0), 
-#     prompt=prompt, 
-#     verbose=True, 
-#     memory=ConversationBufferMemory(k=2),
-# )
+chatgpt_chain = LLMChain(
+    llm = OpenAI(model="gpt-3.5-turbo-instruct", temperature=0), 
+    prompt=prompt, 
+    verbose=True, 
+    memory=ConversationBufferMemory(k=2),
+)
 
 #--------------------------------------------------------------------------------------------------------------------
 #               SCHEDULE MESSAGE Slack API #Method 1 
@@ -60,33 +60,33 @@ client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
 # News items
-news_item_1 = (
-    "*Latest News:*\n"
-    "1. *Headline*: Biden announces new infrastructure plan to rebuild roads and bridges.\n"
-    "   *Summary*: President Biden unveils a $2 trillion infrastructure proposal aimed at modernizing the nation's transportation infrastructure and tackling climate change.\n"
-    "   *Source*: CNN\n"
-    "   *Timestamp*: 21st February 2024, 10:30 AM\n"
-    "   [Read more](link_to_full_article)\n\n"
+tech_news_item_1 = (
+    "*Latest Tech News:*\n\n"
+    "1. *Headline*: Apple unveils new MacBook Pro with M2 chip and mini-LED display.\n"
+    "   *Summary*: Apple introduces the latest MacBook Pro featuring its custom-designed M2 chip for enhanced performance and a stunning mini-LED display.\n"
+    "   *Source*: The Verge\n"
+    "   *Timestamp*: 21st February 2024, 9:00 AM\n"
+    "   [Read more](link_to_full_article)\n\n\n"
 )
 
-news_item_2 = (
-    "2. *Headline*: SpaceX successfully launches crewed mission to the International Space Station.\n"
-    "   *Summary*: SpaceX Crew Dragon spacecraft carrying four astronauts docks with the ISS, marking another milestone in commercial spaceflight.\n"
-    "   *Source*: Reuters\n"
-    "   *Timestamp*: 20th February 2024, 3:45 PM\n"
-    "   [Read more](link_to_full_article)\n\n"
+tech_news_item_2 = (
+    "2. *Headline*: Meta announces plans for metaverse integration across its platforms.\n"
+    "   *Summary*: Meta (formerly Facebook) reveals its strategy to integrate metaverse features into Facebook, Instagram, and WhatsApp, aiming for a more immersive social experience.\n"
+    "   *Source*: TechCrunch\n"
+    "   *Timestamp*: 20th February 2024, 2:15 PM\n"
+    "   [Read more](link_to_full_article)\n\n\n"
 )
 
-news_item_3 = (
-    "3. *Headline*: WHO warns of new variant spreading rapidly across Europe.\n"
-    "   *Summary*: World Health Organization alerts countries to the spread of a highly transmissible new variant of COVID-19 across several European nations.\n"
-    "   *Source*: BBC News\n"
-    "   *Timestamp*: 19th February 2024, 8:00 PM\n"
-    "   [Read more](link_to_full_article)\n\n"
+tech_news_item_3 = (
+    "3. *Headline*: Tesla unveils new AI-powered autopilot system for Full Self-Driving (FSD) beta.\n"
+    "   *Summary*: Tesla introduces its latest AI-powered autopilot system, promising improved performance and safety for its Full Self-Driving (FSD) beta testers.\n"
+    "   *Source*: CNBC\n"
+    "   *Timestamp*: 19th February 2024, 11:30 AM\n"
+    "   [Read more](link_to_full_article)\n\n\n"
 )
 
 # Concatenate news items
-news_example = news_item_1 + news_item_2 + news_item_3
+news_example = tech_news_item_1 + tech_news_item_2 + tech_news_item_3
 
 def schedule_news(hour, minute, second, next_days, id):
     
@@ -269,8 +269,9 @@ def update_message(ack, body, say):
 def messaage_handler(message, say, logger):
     print(message)
     if message['channel_type'] != 'channel':
-        # output = chatgpt_chain.predict(human_input = message['text'])   
-        say("not connected to chatgpt, testing only")
+        output = chatgpt_chain.predict(human_input = message['text'])   
+        say(output)
+        # say("not connected to chatgpt, testing only")
 
 # Start your app
 if __name__ == "__main__":
