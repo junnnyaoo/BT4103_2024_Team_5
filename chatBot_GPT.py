@@ -167,6 +167,12 @@ def getLatestNews():
         "   [Read more](link_to_full_article)\n\n\n"
     )
 
+    # sorted_news = collection.find().sort("title",-1)
+    # latest_news = []
+    # for news in sorted_news:
+    #     latest_news.append(news["_id"])
+    # print(latest_news)
+
     # Concatenate news items
     latest_news = tech_news_item_1 + tech_news_item_2 + tech_news_item_3
 
