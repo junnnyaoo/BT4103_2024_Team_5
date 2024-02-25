@@ -21,22 +21,41 @@ db = mongo_client.get_database("news_articles")
 collection = db.get_collection("cloud_technology")
 
 
-####################################################### DID NOT USE THIS YET
 #Langchain implementation
-template = """Assistant is a large language model trained by OpenAI.
+template = """ You are a bot that will either provide news recommendations, news summaries or answer questions related to the news asked by users.
+    You are speaking to a professional so keep the answer informative and concise.
 
-    Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+    If given an article URL or asked to summarise a URL, Use this following format with their answers: 
 
-    Assistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.
+    Title: <Title Name>
+    Website Link: <Link of Website>
+    Date of Article: <Get the latest date of publication, regardless of update or publish>
+    Names to note: <Names of Company and people mentioned within the article>
+    Key Topic: <Key topic of this article>
+    Sentiment: <conduct sentiment analysis and let them know the sentiment>
+    Trends & Statistics: <Include any trends and statistics found, make it short and do not repeat it in summary>
 
-    Overall, Assistant is a powerful tool that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist.
+    Summary: <The summarised version of the article >
+        
+    If asked for news recommendations based on certain keywords or topics, return the recommendations using the additional information provided in this format:
+    The ordering of the article recommendation should be based on the order of your previous output and not the order given by the additional information.
 
-    {history}
-    Human: {human_input}
-    Assistant:"""
+    Title: <Title Name>
+    Website Link: <Link of Website>
+    Date of Article: <Get the latest date of publication, regardless of update or publish>
+
+    If not, just answer the questions with the information you know.
+
+
+        Additional Information: {add_info}
+
+        History:{history}
+
+        Human: {human_input}
+        Assistant:"""
 
 prompt = PromptTemplate(
-    input_variables=["history", "human_input"], 
+    input_variables=["history", "human_input", "add_info"], 
     template=template
 )
 
@@ -44,9 +63,9 @@ chatgpt_chain = LLMChain(
     llm = OpenAI(openai_api_key=api_key,model="gpt-3.5-turbo-instruct", temperature=0), 
     prompt=prompt, 
     verbose=True, 
-    memory=ConversationBufferMemory(k=2),
+    memory=ConversationBufferMemory(memory_key="history", input_key="human_input")
 )
-####################################################### DID NOT USE THIS YET
+
 
 
 
@@ -62,7 +81,7 @@ def vector_search(query, collection):
                 "index": "vector_index", # The search index I created on MongoDB
                 "queryVector": query_embedding, # The embedded query from the user that is used for searching
                 "path": "data", # The relevant field of the document that is used for searching (in this case the full text of the news article)
-                "limit": 1, # How many results you want the vectorSearch to show
+                "limit": 3, # How many results you want the vectorSearch to show
                 "numCandidates": 10 # How many documents you want vectorSearch to consider when searching
             }
         }
@@ -82,8 +101,8 @@ def message_handler(message, say, logger):
     for result in get_knowledge:
         search_result += f"Title: {result.get('title', 'N/A')}, Link: {result.get('link', 'N/A')}"
 
-    # output = chatgpt_chain.predict(human_input = message['text'])   
-    say(search_result)
+    output = chatgpt_chain.predict(human_input = message['text'], add_info = search_result)   
+    say(output)
 
 
 
