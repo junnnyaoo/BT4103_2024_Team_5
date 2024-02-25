@@ -16,7 +16,7 @@ from slack_sdk.errors import SlackApiError
 
 # Initializes your app with your bot token and socket mode handler
 # If using local environ, replace with app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
-app = App(token=os.getenv("SLACK_BOT_TOKEN")) 
+app = App(token=os.getenv("SLACK_BOT_TOKEN"), ignoring_self_events_enabled = False) 
 api_key = os.getenv("OPENAI_API_KEY")
 template_2 = template_2
 
@@ -59,39 +59,10 @@ chatgpt_chain = LLMChain(
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
-# News items
-tech_news_item_1 = (
-    "*Latest Tech News:*\n\n"
-    "1. *Headline*: Apple unveils new MacBook Pro with M2 chip and mini-LED display.\n"
-    "   *Summary*: Apple introduces the latest MacBook Pro featuring its custom-designed M2 chip for enhanced performance and a stunning mini-LED display.\n"
-    "   *Source*: The Verge\n"
-    "   *Timestamp*: 21st February 2024, 9:00 AM\n"
-    "   [Read more](link_to_full_article)\n\n\n"
-)
-
-tech_news_item_2 = (
-    "2. *Headline*: Meta announces plans for metaverse integration across its platforms.\n"
-    "   *Summary*: Meta (formerly Facebook) reveals its strategy to integrate metaverse features into Facebook, Instagram, and WhatsApp, aiming for a more immersive social experience.\n"
-    "   *Source*: TechCrunch\n"
-    "   *Timestamp*: 20th February 2024, 2:15 PM\n"
-    "   [Read more](link_to_full_article)\n\n\n"
-)
-
-tech_news_item_3 = (
-    "3. *Headline*: Tesla unveils new AI-powered autopilot system for Full Self-Driving (FSD) beta.\n"
-    "   *Summary*: Tesla introduces its latest AI-powered autopilot system, promising improved performance and safety for its Full Self-Driving (FSD) beta testers.\n"
-    "   *Source*: CNBC\n"
-    "   *Timestamp*: 19th February 2024, 11:30 AM\n"
-    "   [Read more](link_to_full_article)\n\n\n"
-)
-
-# Concatenate news items
-news_example = tech_news_item_1 + tech_news_item_2 + tech_news_item_3
-
 def schedule_news(hour, minute, second, next_days, id):
     
     #Create a schedule using datetime library
-    tomorrow = datetime.date.today()  + datetime.timedelta(days = next_days)
+    tomorrow = datetime.date.today() + datetime.timedelta(days = next_days)
     scheduled_time = datetime.time(hour, minute, second)
     schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
     try:
@@ -99,7 +70,7 @@ def schedule_news(hour, minute, second, next_days, id):
         result = client.chat_scheduleMessage(
             channel=id,
             #here will be the relevent news update
-            text= news_example,
+            text= "Here are the latest news:",
             post_at=schedule_timestamp
         )
         # Log the result
@@ -169,7 +140,42 @@ news_scheduler_blocks = [
 		}
 	]
 
-#for direct msg    
+#function to get latest news at the moment
+def getLatestNews():
+    # News items for testing, afterwards will be calling read latest news data from db
+    tech_news_item_1 = (
+        "1. *Headline*: Apple unveils new MacBook Pro with M2 chip and mini-LED display.\n"
+        "   *Summary*: Apple introduces the latest MacBook Pro featuring its custom-designed M2 chip for enhanced performance and a stunning mini-LED display.\n"
+        "   *Source*: The Verge\n"
+        "   *Timestamp*: 21st February 2024, 9:00 AM\n"
+        "   [Read more](link_to_full_article)\n\n\n"
+    )
+
+    tech_news_item_2 = (
+        "2. *Headline*: Meta announces plans for metaverse integration across its platforms.\n"
+        "   *Summary*: Meta (formerly Facebook) reveals its strategy to integrate metaverse features into Facebook, Instagram, and WhatsApp, aiming for a more immersive social experience.\n"
+        "   *Source*: TechCrunch\n"
+        "   *Timestamp*: 20th February 2024, 2:15 PM\n"
+        "   [Read more](link_to_full_article)\n\n\n"
+    )
+
+    tech_news_item_3 = (
+        "3. *Headline*: Tesla unveils new AI-powered autopilot system for Full Self-Driving (FSD) beta.\n"
+        "   *Summary*: Tesla introduces its latest AI-powered autopilot system, promising improved performance and safety for its Full Self-Driving (FSD) beta testers.\n"
+        "   *Source*: CNBC\n"
+        "   *Timestamp*: 19th February 2024, 11:30 AM\n"
+        "   [Read more](link_to_full_article)\n\n\n"
+    )
+
+    # Concatenate news items
+    latest_news = tech_news_item_1 + tech_news_item_2 + tech_news_item_3
+
+    return latest_news
+
+@app.message("Here are the latest news:")
+def start(message, say):
+    say(getLatestNews())
+
 @app.message("start newsbot")
 def start(message, say):
     print(message)
@@ -200,6 +206,7 @@ def update_message(ack, body, say):
         #append those that are in this channel
         if msg['channel_id'] == body['channel']['id']:
             scheduled_msg_id_list.append(msg['id'])
+
     print("\nBelow is list of scheduled msg id list")
     print(scheduled_msg_id_list)
     # delete those msgs scheduled in this channel
@@ -268,10 +275,11 @@ def update_message(ack, body, say):
 @app.message(".*")
 def messaage_handler(message, say, logger):
     print(message)
-    if message['channel_type'] != 'channel':
-        output = chatgpt_chain.predict(human_input = message['text'])   
-        say(output)
-        # say("not connected to chatgpt, testing only")
+    print("\n")
+    if message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
+        # output = chatgpt_chain.predict(human_input = message['text'])   
+        # say(output)
+        say("not connected to chatgpt, testing only")
 
 # Start your app
 if __name__ == "__main__":
