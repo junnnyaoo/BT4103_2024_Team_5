@@ -7,6 +7,7 @@ from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain_openai import OpenAIEmbeddings
 from pymongo import MongoClient
+from bson.json_util import dumps
 
 # Initializes your app with your bot token and socket mode handler
 # If using local environ, replace with app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
@@ -19,6 +20,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 db = mongo_client.get_database("news_articles")
 collection = db.get_collection("cloud_technology")
+
 
 
 #Langchain implementation
