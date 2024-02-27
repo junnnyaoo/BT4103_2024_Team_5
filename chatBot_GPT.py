@@ -8,12 +8,18 @@ from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 
 import datetime
-
+#import blocks from our blocks python file
+import blocks
+#db functions
+import hy_readDbFunctions
 import logging
 # Import WebClient from Python SDK (github.com/slackapi/python-slack-sdk)
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+#--------------------------------------------------------------------------------------------------------------------
+#               Slackbot init
+#--------------------------------------------------------------------------------------------------------------------
 # Initializes your app with your bot token and socket mode handler
 # If using local environ, replace with app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 app = App(token=os.getenv("SLACK_BOT_TOKEN"), ignoring_self_events_enabled = False) 
@@ -52,7 +58,7 @@ chatgpt_chain = LLMChain(
 )
 
 #--------------------------------------------------------------------------------------------------------------------
-#               SCHEDULE MESSAGE Slack API #Method 1 
+#               SCHEDULE MESSAGE Slack API 
 #--------------------------------------------------------------------------------------------------------------------
 # WebClient instantiates a client that can call API methods
 # When using Bolt, you can use either `app.client` or the `client` passed to listeners.
@@ -60,7 +66,6 @@ client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
 def schedule_news(hour, minute, second, next_days, id):
-    
     #Create a schedule using datetime library
     tomorrow = datetime.date.today() + datetime.timedelta(days = next_days)
     scheduled_time = datetime.time(hour, minute, second)
@@ -74,124 +79,59 @@ def schedule_news(hour, minute, second, next_days, id):
             post_at=schedule_timestamp
         )
         # Log the result
-        print("\nBelow is schedule msg result")
-        logger.info(result)
-        print(result)
-
+        # print("\nBelow is schedule msg result")
+        # logger.info(result)
+        # print(result)
     except SlackApiError as e:
         logger.error("Error scheduling message: {}".format(e))
 
 #--------------------------------------------------------------------------------------------------------------------
-#               Interactive message for scheduler
+#               Slackbot listener
 #--------------------------------------------------------------------------------------------------------------------
-
-news_scheduler_blocks = [
-		{
-			"type": "section",
-			"text": {
-				"type": "plain_text",
-				"text": "Please choose how frequently (every 1/7/14/30 days) you'd like to receive news updates (News will be posted at 9am)."
-			}
-		},
-		{
-			"type": "actions",
-			"elements": [
-                {
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "1 Days"
-					},
-					"style": "primary",
-					"value": "1 Days",
-                    "action_id": "1d"
-				},
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "7 Days"
-					},
-					"style": "primary",
-					"value": "7 Days",
-                    "action_id": "7d"
-				},
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "14 Days"
-					},
-					"style": "primary",
-					"value": "14 Days",
-                    "action_id": "14d"
-				},
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "30 Days"
-					},
-					"style": "primary",
-					"value": "30 Days",
-                    "action_id": "30d"
-				}
-			]
-		}
-	]
-
-#function to get latest news at the moment
-def getLatestNews():
-    # News items for testing, afterwards will be calling read latest news data from db
-    tech_news_item_1 = (
-        "1. *Headline*: Apple unveils new MacBook Pro with M2 chip and mini-LED display.\n"
-        "   *Summary*: Apple introduces the latest MacBook Pro featuring its custom-designed M2 chip for enhanced performance and a stunning mini-LED display.\n"
-        "   *Source*: The Verge\n"
-        "   *Timestamp*: 21st February 2024, 9:00 AM\n"
-        "   [Read more](link_to_full_article)\n\n\n"
-    )
-
-    tech_news_item_2 = (
-        "2. *Headline*: Meta announces plans for metaverse integration across its platforms.\n"
-        "   *Summary*: Meta (formerly Facebook) reveals its strategy to integrate metaverse features into Facebook, Instagram, and WhatsApp, aiming for a more immersive social experience.\n"
-        "   *Source*: TechCrunch\n"
-        "   *Timestamp*: 20th February 2024, 2:15 PM\n"
-        "   [Read more](link_to_full_article)\n\n\n"
-    )
-
-    tech_news_item_3 = (
-        "3. *Headline*: Tesla unveils new AI-powered autopilot system for Full Self-Driving (FSD) beta.\n"
-        "   *Summary*: Tesla introduces its latest AI-powered autopilot system, promising improved performance and safety for its Full Self-Driving (FSD) beta testers.\n"
-        "   *Source*: CNBC\n"
-        "   *Timestamp*: 19th February 2024, 11:30 AM\n"
-        "   [Read more](link_to_full_article)\n\n\n"
-    )
-
-    # sorted_news = collection.find().sort("title",-1)
-    # latest_news = []
-    # for news in sorted_news:
-    #     latest_news.append(news["_id"])
-    # print(latest_news)
-
-    # Concatenate news items
-    latest_news = tech_news_item_1 + tech_news_item_2 + tech_news_item_3
-
-    return latest_news
-
+#listener for scheduled msg "Here are the latest news:" so that the bot can fetch latest news on the scheduled day.
 @app.message("Here are the latest news:")
 def start(message, say):
-    say(getLatestNews())
+    #need to check if this is bot, only bot can post news
+    if 'bot_id' in message.keys():
+        say(hy_readDbFunctions.getLatestNews())
 
-@app.message("start newsbot")
+#listener for starting bot schedule
+@app.message("start schedule")
+@app.message("Your schedule has expired, please select a new schedule.")
 def start(message, say):
     print(message)
     say(channel= message['channel'],
             text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
-            blocks= news_scheduler_blocks,
+            blocks= blocks.news_scheduler_blocks,
             as_user =True)
-    
 
-# listener will be called every time a block element with these action_id is called
+#listener for starting bot to show news category choices
+@app.message("start news")
+def start(message, say):
+    print(message)
+    say(channel= message['channel'],
+            text = "Please select the news category you want to see.",
+            blocks= blocks.news_category_blocks,
+            as_user =True)
+
+# action listener for news category, when user click this, we will output news filtered by category
+@app.action("category_select")
+def update_message(ack, body, say):
+    ack()
+    # Extract selected options
+    print(body)
+    # Extracting all values of selected_options
+    selected_options = []
+    for value in body['state']['values'].values():
+        if 'selected_options' in value.get('checkboxes-action', {}):
+            selected_options.extend(option['value'] for option in value['checkboxes-action']['selected_options'])
+
+    # Printing the extracted values
+    print(selected_options)
+    #code to retrieve from sql according to category
+    say("category selection rececived: " + str(selected_options))
+
+# action listener for news scheduling, whether if its 1d, 7d etc
 @app.action("1d")
 @app.action("7d")
 @app.action("14d")
@@ -204,8 +144,8 @@ def update_message(ack, body, say):
     #get list of scheduled msgs
     scheduled_list = client.chat_scheduledMessages_list()['scheduled_messages']
     
-    print("\nBelow is list of scheduled bef delete")
-    print(client.chat_scheduledMessages_list())
+    # print("\nBelow is list of scheduled bef delete")
+    # print(client.chat_scheduledMessages_list())
 
     scheduled_msg_id_list = []
     for msg in scheduled_list:
@@ -213,41 +153,32 @@ def update_message(ack, body, say):
         if msg['channel_id'] == body['channel']['id']:
             scheduled_msg_id_list.append(msg['id'])
 
-    print("\nBelow is list of scheduled msg id list")
-    print(scheduled_msg_id_list)
+    # print("\nBelow is list of scheduled msg id list")
+    # print(scheduled_msg_id_list)
     # delete those msgs scheduled in this channel
     for msg_id in scheduled_msg_id_list:
         client.chat_deleteScheduledMessage(channel=body['channel']['id'],scheduled_message_id=msg_id)
 
-    print("\nBelow is list of scheduled after delete")
-    print(client.chat_scheduledMessages_list())
+    # print("\nBelow is list of scheduled after delete")
+    # print(client.chat_scheduledMessages_list())
 
     #for testing
+    #25sec later post msg for testing
     now = datetime.datetime.now()
     seconds = now.second + 25
     minutes = now.minute
     print("\nBelow is body")
     print(body)
-    count = 0
 
-    next_schedule, days_interval = 0, 0
-    if body['actions'][0]['value'] == '1 Days':
-        days_interval = 1
-    elif body['actions'][0]['value'] == '7 Days':
-        days_interval = 7
-    elif body['actions'][0]['value'] == '14 Days':
-        days_interval = 14
-    elif body['actions'][0]['value'] == '30 Days':
-        days_interval = 30
-    
+    count, next_schedule, days_interval = 0, 0, int(body['actions'][0]['value'])
+
     if len(scheduled_msg_id_list) == 0:
-        say("We have received your schedule choices: News update every " + body['actions'][0]['value'])
+        say("We have received your schedule choices: News update every " + body['actions'][0]['value'] + " Days")
     else:
-        say("We have rescheduled your schedule choices: News update every " + body['actions'][0]['value'])
+        say("We have rescheduled your schedule choices: News update every " + body['actions'][0]['value'] + " Days")
 
     # max no. of schedule slack api allows is 120days
-    while next_schedule <= 30:
-
+    while next_schedule < 120:
         #---------- for testing -----------------
         #code will show 15 second later
         #wont work if your time now is close to the next hour
@@ -261,7 +192,6 @@ def update_message(ack, body, say):
         else:
             schedule_news(now.hour, minutes, seconds, 0, body['channel']['id'])
         count += 1
-        
     #     #---------- for deployment -----------------
     #     # schedule_news(9, 0, 0, next_schedule, body['channel'])
     #     # if body['channel']['name'] == 'directmessage':
@@ -270,14 +200,22 @@ def update_message(ack, body, say):
     #     #     schedule_news(9, 0, 0, next_schedule, body['channel']['id'])
     #     next_schedule += days_interval
         
-    print("\nBelow is list of scheduled after deleting all other schedules and scheduling new ones")
-    print(client.chat_scheduledMessages_list())
+    # print("\nBelow is list of scheduled after deleting all other schedules and scheduling new ones")
+    # print(client.chat_scheduledMessages_list())  
+        
+    #need to change time to 9am
+    tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
+    scheduled_time = datetime.time(now.hour, minutes, seconds + 5)
+    schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
+    client.chat_scheduleMessage(
+        channel=body['channel']['id'],
+        #here will be the relevent news update
+        text= "Your schedule has expired, please select a new schedule.",
+        post_at=schedule_timestamp
+    )
 
-#--------------------------------------------------------------------------------------------------------------------
-#               Alex code
-#--------------------------------------------------------------------------------------------------------------------
 
-# Message handler for Slack
+# all message handler for Slack
 @app.message(".*")
 def messaage_handler(message, say, logger):
     print(message)
@@ -287,6 +225,9 @@ def messaage_handler(message, say, logger):
         # say(output)
         say("not connected to chatgpt, testing only")
 
+#--------------------------------------------------------------------------------------------------------------------
+#               Slackbot startup
+#--------------------------------------------------------------------------------------------------------------------
 # Start your app
 if __name__ == "__main__":
     #if local environ, replace w/ : SocketModeHandler(app,os.environ.get("SLACK_BOT_TOKEN")).start()
