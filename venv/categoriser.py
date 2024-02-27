@@ -99,7 +99,7 @@ change_stream = mongo_client.changestream.collection.watch([{
         'operationType': { '$in': ['insert'] }
     }
 }])
-mongo_client.changestream.collection.insert_one({"_id": 12, "article": article_two})
+#mongo_client.changestream.collection.insert_one({"_id": 12, "article": article_two})
 
 for change in change_stream:
     print(dumps(change))
@@ -118,3 +118,8 @@ for change in change_stream:
     #Insert Category to the Document
     insert_category(collection,current_doc,output)
     print('') # for readability only
+
+
+
+    #Next Steps to do. Leave this running and do insertion on another py script. to see if it works. (after thursday meeting)
+    #See if categorisation can be improved but am not too sure if this is for future sprints.
