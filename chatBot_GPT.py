@@ -6,6 +6,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from langchain import OpenAI, ConversationChain, LLMChain, PromptTemplate
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
+from pymongo import MongoClient
 
 import datetime
 #import blocks from our blocks python file
@@ -25,6 +26,12 @@ from slack_sdk.errors import SlackApiError
 app = App(token=os.getenv("SLACK_BOT_TOKEN"), ignoring_self_events_enabled = False) 
 api_key = os.getenv("OPENAI_API_KEY")
 template_2 = template_2
+
+# Initialize MongoDB
+mongo_client = MongoClient(os.getenv("MONGODB_URI"))
+db = mongo_client.get_database("news_articles")
+collection = db.get_collection("cloud_technology")
+
 
 #Langchain implementation
 template = """ You are speaking to a professional who does not have much time, do an informative summary in 7 sentences maximum and keep the answer concise.
@@ -93,7 +100,8 @@ def schedule_news(hour, minute, second, next_days, id):
 def start(message, say):
     #need to check if this is bot, only bot can post news
     if 'bot_id' in message.keys():
-        say(hy_readDbFunctions.getLatestNews())
+        print("check")
+        say(hy_readDbFunctions.getLatestNews(collection))
 
 #listener for starting bot schedule
 @app.message("start schedule")
