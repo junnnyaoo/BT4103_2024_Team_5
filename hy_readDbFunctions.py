@@ -26,13 +26,15 @@ def getLatestNews(collection):
     # )
 
     sorted_news = collection.find().sort("date",-1)
-    latest_news = []
-    for news in sorted_news:
-        latest_news.append(news["_id"])
+    latest_news = ""
+    
+    for i, news in enumerate(sorted_news):
+        latest_news += "Id = " + str(news["_id"]) + "\n"
+        latest_news += "Text = " + str(news['article']) +"\n"
+    latest_news = latest_news[:-1]  
 
     # Concatenate news items
     # latest_news = tech_news_item_1 + tech_news_item_2 + tech_news_item_3
-
     return latest_news
 
 #function to get latest news according to category
