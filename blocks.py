@@ -108,7 +108,7 @@ news_sched_category_blocks = [
 			},
 			"label": {
 				"type": "plain_text",
-				"text": "Label"
+				"text": "Please choose how frequently (every 1/7/14/30 days) you'd like to receive news updates (News will be posted at 9am)."
 			}
 		},
 		{
