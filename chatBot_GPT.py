@@ -110,7 +110,7 @@ def start(message, say):
     print(message)
     say(channel= message['channel'],
             text = "Please choose how frequently you'd like to receive news updates using the scheduler (News will be posted at 9am).",
-            blocks= blocks.news_scheduler_blocks,
+            blocks= blocks.news_sched_category_blocks,
             as_user =True)
 
 #listener for starting bot to show news category choices
@@ -123,6 +123,37 @@ def start(message, say):
             as_user =True)
 
 # action listener for news category, when user click this, we will output news filtered by category
+@app.action("schedule_category_select")
+def update_message(ack, body, say):
+    ack()
+    # Extract selected options
+    print(body)
+    # Extracting all values of selected_options
+    selected_options = []
+    for value in body['state']['values'].values():
+        if 'selected_options' in value.get('checkboxes-action', {}):
+            selected_options.extend(option['value'] for option in value['checkboxes-action']['selected_options'])
+
+    #Extracting schedule days
+    # Iterate over blocks to find the block ID associated with radio buttons
+    radio_block_id = None
+    for key in body["state"]["values"]:
+        if "radio_buttons-action" in body["state"]["values"][key]:
+            radio_block_id = key
+            break
+
+    if radio_block_id:
+        # Retrieve the selected option from the state
+        schedule = body["state"]["values"][radio_block_id]["radio_buttons-action"]["selected_option"]["text"]["text"]
+    else:
+        print("Radio button block not found.")
+
+    # Printing the extracted values
+    say("schedule selection rececived: " + str(schedule))
+    #code to retrieve from sql according to category
+    say("category selection rececived: " + str(selected_options))
+
+# action listener for news schedule and category
 @app.action("category_select")
 def update_message(ack, body, say):
     ack()

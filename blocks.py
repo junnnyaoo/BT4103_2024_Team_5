@@ -57,6 +57,126 @@ news_scheduler_blocks = [
 		}
 	]
 
+
+#--------------------------------------------------------------------------------------------------------------------
+#               Interactive message for category and schedule
+#--------------------------------------------------------------------------------------------------------------------
+
+news_sched_category_blocks = [
+		{
+			"type": "input",
+			"element": {
+				"type": "radio_buttons",
+				"initial_option": {
+					"value": "1",
+					"text": {
+						"type": "plain_text",
+						"text": "1 Days"
+					}
+				},
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "1 Days"
+						},
+						"value": "1"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "7 Days"
+						},
+						"value": "7"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "14 Days"
+						},
+						"value": "14"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "30 Days"
+						},
+						"value": "30"
+					}
+				],
+				"action_id": "radio_buttons-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Label"
+			}
+		},
+		{
+			"type": "input",
+			"element": {
+				"type": "checkboxes",
+				"initial_options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "All"
+						},
+						"value": "All"
+					}
+				],
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "All"
+						},
+						"value": "All"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Cloud Computing & Infrastructure"
+						},
+						"value": "Cloud Computing & Infrastructure"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Data Science & AI"
+						},
+						"value": "Data Science & AI"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Cyber Security & Privacy"
+						},
+						"value": "Cyber Security & Privacy"
+					}
+				],
+				"action_id": "checkboxes-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Please select the news category you want to see."
+			}
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Submit"
+					},
+					"value": "schedule_category_select",
+					"action_id": "schedule_category_select"
+				}
+			]
+		}
+	]
+
 #--------------------------------------------------------------------------------------------------------------------
 #               Interactive message for category
 #--------------------------------------------------------------------------------------------------------------------
