@@ -23,10 +23,14 @@ collection = db.get_collection("collection")
 
 #Defining Function + ChatGPT
 #Langchain implementation
-template = """ You are a bot that will be given an article and to categorise it. There are three categories, so only pick one. The three
-    categories are 'Information Technology', 'Finance' or 'General'.
+template = """ You are a bot that will be given an article and to categorise it. There are seven categories, so only pick one. The seven
+categories are 'Cloud Computing & Infrastructure', 'Consumer Technology', 'Cyber Security & Privacy', 'Data Science and AI', 'Decentralised Computing',
+'Digital Transformation', 'IT and Network Infrastructure'.
 
-    If you do not know the category, just categorise as general.
+However, if the content is not applicable to any category that you can categorise to your best ability, classify them as 'General'.
+If you do not know the category, just categorise as general.
+
+Make sure that there are no spacing before the first word.
 
 
         Human: {article}
@@ -61,6 +65,13 @@ def insert_category(collection_name,id,category):
     
     print("UPDATED")
 
+#To make sure that there are no spacing which ChatGPT outputs " Category_Name" -> "Category_Name"
+def space_check(category):
+    if category[0] == " ":
+        return category[1:]
+    else:
+        return category
+
 
 change_stream = mongo_client.changestream.collection.watch([{
     '$match': {
@@ -80,6 +91,7 @@ for change in change_stream:
     
     #Let ChatGPT to Categorise
     output = chatgpt_chain.predict(article = article_insert) 
+    output = space_check(output)
     print(current_doc)
     print(output)
 
