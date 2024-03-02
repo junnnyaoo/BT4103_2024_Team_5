@@ -62,38 +62,6 @@ def insert_category(collection_name,id,category):
     print("UPDATED")
 
 
-article_one = '''As part of its efforts to tackle climate change, Singapore will be constructing the world’s largest facility to boost the ocean’s ability to absorb carbon dioxide (CO2) from the atmosphere. 
-The US$20 million (S$27 million) plant, once fully operational in 2025, will be able to remove some 3,650 tonnes of CO2 from the ocean yearly, while helping PUB to decarbonise its water treatment processes, the national water agency said on Feb 27. 
-
-When the seawater is pumped back into the ocean, it has the capacity to absorb more CO2 from the atmosphere.
-
-The plan comes after two smaller pilot facilities – one in PUB’s R&D desalination plant in Tuas, and the other in the Port of Los Angeles – proved successful in removing CO2.
-
-Both plants, which were set up in April 2023, are each able to remove some 100kg of the greenhouse gas from the ocean each day. 
-
-The technology, designed by American start-up Equatic, works by pumping seawater from adjacent desalination plants through electricity. This leads to a series of chemical reactions that split the seawater into hydrogen and oxygen. The dissolved CO2 is combined with minerals in seawater like calcium and magnesium to produce solid limestone – essentially trapping the CO2 for at least 10,000 years. 
-
-The process mimics the natural formation of seashells, and the solid calcium and magnesium-based materials can either be stored on the ocean floor, or potentially be used for construction materials if found viable.'''
-
-
-article_two = '''The burgeoning artificial intelligence tools from companies such as OpenAI still have their share of skeptics, but don’t count JPMorgan Chase
- CEO Jamie Dimon among them.
-
-The Wall Street titan told CNBC’s Leslie Picker on Monday that AI is not just a passing fad and is bigger than just the large language models such as Chat GPT. He compared the current moment favorably to the tech bubble around the start of the 21st century, when investor excitement seemingly got ahead of the actual changes.
-
-“This is not hype. This is real. When we had the internet bubble the first time around … that was hype. This is not hype. It’s real,” Dimon said. “People are deploying it at different speeds, but it will handle a tremendous amount of stuff.”
-
-JPMorgan has done work on the ability to use the new technologies internally, with Dimon saying that AI will eventually “be used in almost every job.” JPMorgan created a new role of chief data and analytics officer last year, in part to handle AI.
-
-Dimon said Monday that there are 200 people at JPMorgan doing research on the large language models that have recently been rolled out by tech companies.
-
-While acknowledging that AI can be used by bad actors, Dimon called himself a “big optimist” about the emerging technology, mentioning cybersecurity and pharmaceutical research as areas where it can be helpful.
-
-“It may invent cancer cures because it can do things that the human mind simply cannot do,” Dimon said.'''
-
-
-
-
 change_stream = mongo_client.changestream.collection.watch([{
     '$match': {
         'operationType': { '$in': ['insert'] }
@@ -107,8 +75,8 @@ for change in change_stream:
     #Get Current Document Field ID
     current_doc = change['fullDocument']['_id']
 
-    #Retrieve Article
-    article_insert = change['fullDocument']['article']
+    #Retrieve Article/News Data
+    article_insert = change['fullDocument']['news_data']
     
     #Let ChatGPT to Categorise
     output = chatgpt_chain.predict(article = article_insert) 
