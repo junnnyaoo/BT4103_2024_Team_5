@@ -25,12 +25,19 @@ def getLatestNews(collection):
     #     "   [Read more](link_to_full_article)\n\n\n"
     # )
 
-    sorted_news = collection.find().sort("date",-1)
+    sorted_news = collection.find().sort("published_at",-1)
     latest_news = ""
+    #only top 5 news retrieved
+    n = 0
     
     for i, news in enumerate(sorted_news):
-        latest_news += "Id = " + str(news["_id"]) + "\n"
-        latest_news += "Text = " + str(news['article']) +"\n"
+        # latest_news += "Id = " + str(news["_id"]) + "\n"
+        # latest_news += "Text = " + str(news['article']) +"\n"
+        
+        latest_news += "published_at = " + str(news["published_at"]) + "\n"
+        if n == 5:
+            break
+        n += 1
     latest_news = latest_news[:-1]  
 
     # Concatenate news items
