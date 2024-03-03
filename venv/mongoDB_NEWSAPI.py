@@ -51,7 +51,7 @@ top_headlines = newsapi.get_top_headlines(language='en',
 if top_headlines['status'] == 'ok':
     articles = top_headlines['articles']
     #for article in articles:
-    for i in range(1,5):
+    for i in range(1,10):
         article = articles[i]
 
         title = article['title']

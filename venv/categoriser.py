@@ -65,12 +65,6 @@ def insert_category(collection_name,id,category):
     
     print("UPDATED")
 
-#To make sure that there are no spacing which ChatGPT outputs " Category_Name" -> "Category_Name"
-def space_check(category):
-    if category[0] == " ":
-        return category[1:]
-    else:
-        return category
 
 
 change_stream = mongo_client.changestream.collection.watch([{
@@ -91,7 +85,10 @@ for change in change_stream:
     
     #Let ChatGPT to Categorise
     output = chatgpt_chain.predict(article = article_insert) 
-    output = space_check(output)
+
+    #To make sure that there are no spacing which ChatGPT outputs " Category_Name" -> "Category_Name"
+    output = output.strip()
+    
     print(current_doc)
     print(output)
 
