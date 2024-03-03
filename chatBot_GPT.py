@@ -72,7 +72,7 @@ chatgpt_chain = LLMChain(
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
-def handle_schedule(channel_id, channel_name, days_interval):
+def handle_schedule(channel_id, channel_name, days_interval, selected_options_string):
 
     #for testing
     #25sec later post msg for testing
@@ -91,17 +91,17 @@ def handle_schedule(channel_id, channel_name, days_interval):
         if count == 1:
             break
         if channel_name == 'directmessage':
-            schedule_news(now.hour, minutes, seconds, 0, channel_id)
+            schedule_news(now.hour, minutes, seconds, 0, channel_id, selected_options_string)
         else:
-            schedule_news(now.hour, minutes, seconds, 0, channel_id)
+            schedule_news(now.hour, minutes, seconds, 0, channel_id, selected_options_string)
         count += 1
     
     #     #---------- for deployment -----------------
     #     # schedule_news(9, 0, 0, next_schedule, body['channel'])
     #     # if body['channel']['name'] == 'directmessage':
-    #     #     schedule_news(9, 0, 0, next_schedule, body['user']['id'])
+    #     #     schedule_news(9, 0, 0, next_schedule, body['user']['id'], selected_options_string)
     #     # else:
-    #     #     schedule_news(9, 0, 0, next_schedule, body['channel']['id'])
+    #     #     schedule_news(9, 0, 0, next_schedule, body['channel']['id'], selected_options_string)
     #     next_schedule += days_interval
         
     # print("\nBelow is list of scheduled after deleting all other schedules and scheduling new ones")
@@ -118,7 +118,7 @@ def handle_schedule(channel_id, channel_name, days_interval):
         post_at=schedule_timestamp
     )
 
-def schedule_news(hour, minute, second, next_days, id):
+def schedule_news(hour, minute, second, next_days, id, selected_options_string):
     #Create a schedule using datetime library
     tomorrow = datetime.date.today() + datetime.timedelta(days = next_days)
     scheduled_time = datetime.time(hour, minute, second)
@@ -128,7 +128,7 @@ def schedule_news(hour, minute, second, next_days, id):
         result = client.chat_scheduleMessage(
             channel=id,
             #here will be the relevent news update
-            text= "Here are the latest news:",
+            text= "Here are the latest news filtered by selected category: " + selected_options_string,
             post_at=schedule_timestamp
         )
         # Log the result
@@ -141,13 +141,6 @@ def schedule_news(hour, minute, second, next_days, id):
 #--------------------------------------------------------------------------------------------------------------------
 #               Slackbot listener
 #--------------------------------------------------------------------------------------------------------------------
-#listener for scheduled msg "Here are the latest news:" so that the bot can fetch latest news on the scheduled day.
-@app.message("Here are the latest news:")
-def start(message, say):
-    #need to check if this is bot, only bot can post news
-    if 'bot_id' in message.keys():
-        print("check")
-        say(hy_readDbFunctions.getLatestNews(collection))
 
 #listener for starting bot schedule
 @app.message("start schedule")
@@ -194,6 +187,7 @@ def update_message(ack, body, say):
     for value in body['state']['values'].values():
         if 'selected_options' in value.get('checkboxes-action', {}):
             selected_options.extend(option['value'] for option in value['checkboxes-action']['selected_options'])
+    selected_options_string = ", ".join(selected_options)
 
     #if user click this again it means he/she wants schedule to reset
     #get list of scheduled msgs
@@ -216,16 +210,16 @@ def update_message(ack, body, say):
 
     # print("\nBelow is list of scheduled after delete")
     # print(client.chat_scheduledMessages_list())
-        
+    
     if len(scheduled_msg_id_list) == 0:
-        text = "We have received your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + str(selected_options)
+        text = "We have received your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + selected_options_string
     else:
-        text = "We have rescheduled your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + str(selected_options)
+        text = "We have rescheduled your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + selected_options_string
     
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = text)
     
     #schedule the messages
-    handle_schedule(body['channel']['id'], body['channel']['name'], days_interval)
+    handle_schedule(body['channel']['id'], body['channel']['name'], days_interval, selected_options_string)
 
 # action listener for category news
 @app.action("category_select")
@@ -238,15 +232,22 @@ def update_message(ack, body, say):
     for value in body['state']['values'].values():
         if 'selected_options' in value.get('checkboxes-action', {}):
             selected_options.extend(option['value'] for option in value['checkboxes-action']['selected_options'])
+    selected_options_string = ", ".join(selected_options)
     
-    client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Category selection received" + str(selected_options))
+    client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Category selection received: " + selected_options_string)
 
 # for all message handler for Slack
 @app.message(".*")
 def messaage_handler(message, say, logger):
     print(message)
     print("\n")
-    if message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
+    
+    #listener for scheduled msg "Here are the latest news:" so that the bot can fetch latest news on the scheduled day. 
+    #need to check if this is bot, only bot can post news
+    if 'bot_id' in message.keys() and message['text'].startswith("Here are the latest news"):
+        say(hy_readDbFunctions.getLatestNews(collection))
+    
+    elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
         # output = chatgpt_chain.predict(human_input = message['text'])   
         # say(output)
         say("not connected to chatgpt, testing only")
