@@ -1,5 +1,5 @@
 #function to get latest news at the moment
-def getLatestNews(collection):
+def getLatestNews(collection, selected_categories):
     # News items for testing, afterwards will be calling read latest news data from db
     # tech_news_item_1 = (
     #     "1. *Headline*: Apple unveils new MacBook Pro with M2 chip and mini-LED display.\n"
@@ -24,8 +24,11 @@ def getLatestNews(collection):
     #     "   *Timestamp*: 19th February 2024, 11:30 AM\n"
     #     "   [Read more](link_to_full_article)\n\n\n"
     # )
+    # Query to filter news by categories
+    query = {"category": {"$in": selected_categories}}
 
-    sorted_news = collection.find().sort("published_at",-1)
+    # Sort the filtered news by published_at in descending order
+    sorted_news = collection.find(query).sort("published_at", -1)
     latest_news = ""
     #only top 5 news retrieved
     n = 0
@@ -34,6 +37,7 @@ def getLatestNews(collection):
         # latest_news += "Id = " + str(news["_id"]) + "\n"
         # latest_news += "Text = " + str(news['article']) +"\n"
         
+        latest_news += "url = " + str(news['url']) +"\n"
         latest_news += "published_at = " + str(news["published_at"]) + "\n"
         if n == 5:
             break

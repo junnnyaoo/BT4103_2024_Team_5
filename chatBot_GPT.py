@@ -245,7 +245,11 @@ def messaage_handler(message, say, logger):
     #listener for scheduled msg "Here are the latest news:" so that the bot can fetch latest news on the scheduled day. 
     #need to check if this is bot, only bot can post news
     if 'bot_id' in message.keys() and message['text'].startswith("Here are the latest news"):
-        say(hy_readDbFunctions.getLatestNews(collection))
+        # Split the string after "selected category:"
+        split_string = message['text'].split("selected category: ")[1]
+        # Split the categories
+        selected_categories = split_string.split(", ")
+        say(hy_readDbFunctions.getLatestNews(collection, selected_categories))
     
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
         # output = chatgpt_chain.predict(human_input = message['text'])   
