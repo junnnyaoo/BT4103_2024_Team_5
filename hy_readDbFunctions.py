@@ -24,19 +24,21 @@ def getLatestNews(collection, selected_categories):
     #     "   *Timestamp*: 19th February 2024, 11:30 AM\n"
     #     "   [Read more](link_to_full_article)\n\n\n"
     # )
-    # Query to filter news by categories
-    query = {"category": {"$in": selected_categories}}
+    if 'All' in selected_categories:
+        sorted_news = collection.find().sort("published_at", -1)
+    else:
+        # Query to filter news by categories
+        query = {"category": {"$in": selected_categories}}
 
-    # Sort the filtered news by published_at in descending order
-    sorted_news = collection.find(query).sort("published_at", -1)
-    latest_news = ""
+        # Sort the filtered news by published_at in descending order
+        sorted_news = collection.find(query).sort("published_at", -1)
+
     #only top 5 news retrieved
-    n = 0
+    latest_news, n = "", 1
     
     for i, news in enumerate(sorted_news):
         # latest_news += "Id = " + str(news["_id"]) + "\n"
         # latest_news += "Text = " + str(news['article']) +"\n"
-        
         latest_news += "url = " + str(news['url']) +"\n"
         latest_news += "published_at = " + str(news["published_at"]) + "\n"
         if n == 5:

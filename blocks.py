@@ -135,6 +135,13 @@ news_sched_category_blocks = [
 					{
 						"text": {
 							"type": "plain_text",
+							"text": "General"
+						},
+						"value": "General"
+					},
+					{
+						"text": {
+							"type": "plain_text",
 							"text": "Cloud Computing & Infrastructure"
 						},
 						"value": "Cloud Computing & Infrastructure"
