@@ -113,7 +113,7 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
     #ask user to choose schedule again
     #due to 120 days limit
     tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
-    scheduled_time = datetime.time(now.hour, minutes, seconds + 5)
+    scheduled_time = datetime.time(now.hour, minutes, seconds + 1)
     schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
     client.chat_scheduleMessage(
         channel=channel_id,
@@ -172,24 +172,11 @@ def update_message(ack, body, say):
     # Extract selected options
     print(body)
 
-    #Extracting schedule days, iterate over blocks to find the block ID associated with radio buttons
-    radio_block_id = None
-    for key in body["state"]["values"]:
-        if "radio_buttons-action" in body["state"]["values"][key]:
-            radio_block_id = key
-            break
-
-    if radio_block_id:
-        # Retrieve the selected option from the state
-        days_interval = body["state"]["values"][radio_block_id]["radio_buttons-action"]["selected_option"]["value"]
-    else:
-        say("Radio button block not found.")
-
+    #Extracting schedule days
+    days_interval = body["state"]["values"]["schedule_radiobuttons"]["radio_buttons-action"]["selected_option"]["value"]
     # Extracting all values of selected_options
     selected_options = []
-    for value in body['state']['values'].values():
-        if 'selected_options' in value.get('checkboxes-action', {}):
-            selected_options.extend(option['value'] for option in value['checkboxes-action']['selected_options'])
+    selected_options.extend(option["value"] for option in body['state']['values']["category_checkboxes"]['checkboxes-action']['selected_options'])
     selected_options_string = ", ".join(selected_options)
 
     #if user click this again it means he/she wants schedule to reset
@@ -200,6 +187,7 @@ def update_message(ack, body, say):
         #append those that are in this channel
         if msg['channel_id'] == body['channel']['id']:
             scheduled_msg_id_list.append(msg['id'])
+
     # print("\nBelow is list of scheduled bef delete")
     # print(client.chat_scheduledMessages_list())
     # print("\nBelow is list of scheduled msg id list")
@@ -226,16 +214,14 @@ def update_message(ack, body, say):
 def update_message(ack, body, say):
     ack()
     print(body)
-    # Extract selected options
-    # Extracting all values of selected_options
-    selected_options = []
-    for value in body['state']['values'].values():
-        if 'selected_options' in value.get('checkboxes-action', {}):
-            selected_options.extend(option['value'] for option in value['checkboxes-action']['selected_options'])
-    selected_options_string = ", ".join(selected_options)
     
+    selected_options = []
+    selected_options.extend(option["value"] for option in body['state']['values']["category_checkboxes"]['checkboxes-action']['selected_options'])
+    selected_options_string = ", ".join(selected_options)
+
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Category selection received: " + selected_options_string)
-    print(selected_options_string)
+    
+    # Split the categories
     selected_categories = selected_options_string.split(", ")
     say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain, collection, selected_categories))
 

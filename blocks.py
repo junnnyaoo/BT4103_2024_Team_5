@@ -65,6 +65,7 @@ news_scheduler_blocks = [
 news_sched_category_blocks = [
 		{
 			"type": "input",
+			"block_id": "schedule_radiobuttons",
 			"element": {
 				"type": "radio_buttons",
 				"initial_option": {
@@ -113,6 +114,7 @@ news_sched_category_blocks = [
 		},
 		{
 			"type": "input",
+			"block_id": "category_checkboxes",
 			"element": {
 				"type": "checkboxes",
 				"initial_options": [
@@ -219,6 +221,7 @@ news_sched_category_blocks = [
 news_category_blocks = [
 		{
 			"type": "input",
+			"block_id": "category_checkboxes",
 			"element": {
 				"type": "checkboxes",
                 "initial_options": [
