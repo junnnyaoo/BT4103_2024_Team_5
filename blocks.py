@@ -184,9 +184,9 @@ news_sched_category_blocks = [
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "IT and Network Infrastructure"
+							"text": "IT & Network Infrastructure"
 						},
-						"value": "IT and Network Infrastructure"
+						"value": "IT & Network Infrastructure"
 					}
 				],
 				"action_id": "checkboxes-action"
@@ -231,13 +231,19 @@ news_category_blocks = [
 					}
                 ],
 				"options": [
-                    
 					{
 						"text": {
 							"type": "plain_text",
 							"text": "All"
 						},
 						"value": "All"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "General"
+						},
+						"value": "General"
 					},
 					{
 						"text": {
@@ -249,9 +255,9 @@ news_category_blocks = [
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Data Science & AI"
+							"text": "Consumer Technology"
 						},
-						"value": "Data Science & AI"
+						"value": "Consumer Technology"
 					},
 					{
 						"text": {
@@ -259,6 +265,34 @@ news_category_blocks = [
 							"text": "Cyber Security & Privacy"
 						},
 						"value": "Cyber Security & Privacy"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Data Science & AI"
+						},
+						"value": "Data Science & AI"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Decentralised Computing"
+						},
+						"value": "Decentralised Computing"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Digital Transformation"
+						},
+						"value": "Digital Transformation"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "IT & Network Infrastructure"
+						},
+						"value": "IT & Network Infrastructure"
 					}
 				],
 				"action_id": "checkboxes-action"

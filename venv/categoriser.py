@@ -24,8 +24,8 @@ collection = db.get_collection("collection")
 #Defining Function + ChatGPT
 #Langchain implementation
 template = """ You are a bot that will be given an article and to categorise it. There are seven categories, so only pick one. The seven
-categories are 'Cloud Computing & Infrastructure', 'Consumer Technology', 'Cyber Security & Privacy', 'Data Science and AI', 'Decentralised Computing',
-'Digital Transformation', 'IT and Network Infrastructure'.
+categories are 'Cloud Computing & Infrastructure', 'Consumer Technology', 'Cyber Security & Privacy', 'Data Science & AI', 'Decentralised Computing',
+'Digital Transformation', 'IT & Network Infrastructure'.
 
 However, if the content is not applicable to any category that you can categorise to your best ability, classify them as 'General'.
 If you do not know the category, just categorise as general.

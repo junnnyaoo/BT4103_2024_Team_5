@@ -72,9 +72,10 @@ chatgpt_chain = LLMChain(
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
+#handling the schedule of news up to 120 days and days interval as selected
 def handle_schedule(channel_id, channel_name, days_interval, selected_options_string):
 
-    #for testing
+    #-------------------FOR TESTING---------------------------
     #25sec later post msg for testing
     now = datetime.datetime.now()
     seconds, minutes = now.second + 25, now.minute
@@ -82,7 +83,7 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
 
     # max no. of schedule slack api allows is 120days
     while next_schedule < 120:
-        #---------- for testing -----------------
+        #-------------------FOR TESTING---------------------------
         #code will show 15 second later
         #wont work if your time now is close to the next hour
         if seconds >= 60:
@@ -96,7 +97,7 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
             schedule_news(now.hour, minutes, seconds, 0, channel_id, selected_options_string)
         count += 1
     
-    #     #---------- for deployment -----------------
+    #     #-------------------FOR DEPLOY---------------------------
     #     # schedule_news(9, 0, 0, next_schedule, body['channel'])
     #     # if body['channel']['name'] == 'directmessage':
     #     #     schedule_news(9, 0, 0, next_schedule, body['user']['id'], selected_options_string)
@@ -108,16 +109,19 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
     # print(client.chat_scheduledMessages_list())  
         
     #need to change time to 9am for deployment
+    #this is for scheduling a prompt to 
+    #ask user to choose schedule again
+    #due to 120 days limit
     tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
     scheduled_time = datetime.time(now.hour, minutes, seconds + 5)
     schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
     client.chat_scheduleMessage(
         channel=channel_id,
-        #here will be the relevent news update
         text= "Your schedule has expired, please select a new schedule.",
         post_at=schedule_timestamp
     )
 
+#handle each schedule of news request to slack api
 def schedule_news(hour, minute, second, next_days, id, selected_options_string):
     #Create a schedule using datetime library
     tomorrow = datetime.date.today() + datetime.timedelta(days = next_days)
@@ -165,7 +169,6 @@ def start(message, say):
 @app.action("schedule_category_select")
 def update_message(ack, body, say):
     ack()
-
     # Extract selected options
     print(body)
 
@@ -197,10 +200,8 @@ def update_message(ack, body, say):
         #append those that are in this channel
         if msg['channel_id'] == body['channel']['id']:
             scheduled_msg_id_list.append(msg['id'])
-
     # print("\nBelow is list of scheduled bef delete")
     # print(client.chat_scheduledMessages_list())
-    
     # print("\nBelow is list of scheduled msg id list")
     # print(scheduled_msg_id_list)
         
@@ -217,7 +218,6 @@ def update_message(ack, body, say):
         text = "We have rescheduled your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + selected_options_string
     
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = text)
-    
     #schedule the messages
     handle_schedule(body['channel']['id'], body['channel']['name'], days_interval, selected_options_string)
 
@@ -225,8 +225,8 @@ def update_message(ack, body, say):
 @app.action("category_select")
 def update_message(ack, body, say):
     ack()
-    # Extract selected options
     print(body)
+    # Extract selected options
     # Extracting all values of selected_options
     selected_options = []
     for value in body['state']['values'].values():
@@ -235,6 +235,9 @@ def update_message(ack, body, say):
     selected_options_string = ", ".join(selected_options)
     
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Category selection received: " + selected_options_string)
+    print(selected_options_string)
+    selected_categories = selected_options_string.split(", ")
+    say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain, collection, selected_categories))
 
 # for all message handler for Slack
 @app.message(".*")
@@ -242,14 +245,16 @@ def messaage_handler(message, say, logger):
     print(message)
     print("\n")
     
-    #listener for scheduled msg "Here are the latest news:" so that the bot can fetch latest news on the scheduled day. 
+    #listener for scheduled msg "Here are the latest news:" 
+    #to fetch latest news on the scheduled day. 
     #need to check if this is bot, only bot can post news
     if 'bot_id' in message.keys() and message['text'].startswith("Here are the latest news"):
         # Split the string after "selected category:"
         split_string = message['text'].split("selected category: ")[1]
         # Split the categories
         selected_categories = split_string.split(", ")
-        say(hy_readDbFunctions.getLatestNews(collection, selected_categories))
+        #read news from db
+        say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain, collection, selected_categories))
     
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
         # output = chatgpt_chain.predict(human_input = message['text'])   
