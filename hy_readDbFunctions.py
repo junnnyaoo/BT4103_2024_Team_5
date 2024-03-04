@@ -24,14 +24,14 @@ def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories):
         # data += "*information*: " + str(news["news_data"])  + "\n"
         # output = chatgpt_chain.predict(human_input = data)  
         # output = output.strip()
-        # latest_news += output + "\n\n\n"
+        # latest_news += output + "\n\n"
 
-        latest_news += data + "\n\n\n"
+        latest_news += data + "\n\n"
 
         if n == 3:
             break
         n += 1
-    latest_news = latest_news[:-3]  
+    latest_news = latest_news[:-2]  
 
     if len(latest_news) == 0:
         return "There are no news updates available currently."
