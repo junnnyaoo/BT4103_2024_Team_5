@@ -3,6 +3,7 @@ def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories):
     if 'All' in selected_categories:
         sorted_news = collection.find().sort("published_at", -1)
     else:
+        print(selected_categories)
         # Query to filter news by categories
         query = {"category": {"$in": selected_categories}}
 
@@ -28,7 +29,7 @@ def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories):
 
         latest_news += data + "\n\n"
 
-        if n == 3:
+        if n == 5:
             break
         n += 1
     latest_news = latest_news[:-2]  

@@ -113,7 +113,7 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
     #ask user to choose schedule again
     #due to 120 days limit
     tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
-    scheduled_time = datetime.time(now.hour, minutes, seconds + 1)
+    scheduled_time = datetime.time(now.hour, minutes, seconds + 5)
     schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
     client.chat_scheduleMessage(
         channel=channel_id,
@@ -214,7 +214,7 @@ def update_message(ack, body, say):
 def update_message(ack, body, say):
     ack()
     print(body)
-    
+
     selected_options = []
     selected_options.extend(option["value"] for option in body['state']['values']["category_checkboxes"]['checkboxes-action']['selected_options'])
     selected_options_string = ", ".join(selected_options)
@@ -236,11 +236,15 @@ def messaage_handler(message, say, logger):
     #need to check if this is bot, only bot can post news
     if 'bot_id' in message.keys() and message['text'].startswith("Here are the latest news"):
         # Split the string after "selected category:"
+        print(message['text'])
         split_string = message['text'].split("selected category: ")[1]
         # Split the categories
         selected_categories = split_string.split(", ")
+        cleaned_selected_categories = []
+        for item in selected_categories:
+            cleaned_selected_categories.append(item.replace("&amp;", "&"))
         #read news from db
-        say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain, collection, selected_categories))
+        say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain, collection, cleaned_selected_categories))
     
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
         # output = chatgpt_chain.predict(human_input = message['text'])   
