@@ -220,10 +220,7 @@ def update_message(ack, body, say):
     selected_options_string = ", ".join(selected_options)
 
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Category selection received: " + selected_options_string)
-    
-    # Split the categories
-    selected_categories = selected_options_string.split(", ")
-    say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain, collection, selected_categories))
+    say("Here are the latest news filtered by selected category: " + selected_options_string)
 
 # for all message handler for Slack
 @app.message(".*")
