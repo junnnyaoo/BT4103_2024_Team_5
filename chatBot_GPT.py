@@ -360,7 +360,7 @@ def messaage_handler(message, say, logger):
         for item in selected_categories:
             cleaned_selected_categories.append(item.replace("&amp;", "&"))
         #read news from db
-        say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain, collection, cleaned_selected_categories))
+        say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain2, collection, cleaned_selected_categories))
     
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
         response = user_query(message['text'])
