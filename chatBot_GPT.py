@@ -1,4 +1,3 @@
-@ -1,257 +0,0 @@
 import os
 import prompt_template
 from prompt_template import template_2
