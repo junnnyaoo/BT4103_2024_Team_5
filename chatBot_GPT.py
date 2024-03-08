@@ -5,7 +5,7 @@ from prompt_template import template_2
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from langchain import OpenAI, ConversationChain, LLMChain, PromptTemplate
-from langchain.chains import ConversationChain, ConversationSummaryBufferMemory
+# from langchain.chains import ConversationChain, ConversationSummaryBufferMemory
 from langchain.memory import ConversationBufferMemory
 from langchain_openai import OpenAIEmbeddings
 from pymongo import MongoClient
