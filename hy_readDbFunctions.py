@@ -25,7 +25,7 @@ def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories):
         
         #for deployment only
         data += "*information*: " + str(news["news_data"])  + "\n"
-        output = chatgpt_chain.predict(human_input = data)  
+        output = chatgpt_chain.predict(human_input = data, add_info="") 
         output = output.strip()
         latest_news += output + "\n\n"
 
