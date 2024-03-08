@@ -17,17 +17,19 @@ def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories):
 
         data = ""
         latest_news += "*Article #" + str(n) + "*\n"
+
+        #for testing and deployment
         data += "*Title*: " + str(news["title"]) + "\n"
         data += "*Website Link*: " + str(news['url']) + "\n"
         data += "*Date of Article*: " + str(news["published_at"])  + "\n"
+        
+        #for deployment only
+        data += "*information*: " + str(news["news_data"])  + "\n"
+        output = chatgpt_chain.predict(human_input = data)  
+        output = output.strip()
+        latest_news += output + "\n\n"
 
-        #for deployment
-        # data += "*information*: " + str(news["news_data"])  + "\n"
-        # output = chatgpt_chain.predict(human_input = data)  
-        # output = output.strip()
-        # latest_news += output + "\n\n"
-
-        latest_news += data + "\n\n"
+        # latest_news += data + "\n\n"
 
         if n == 5:
             break
