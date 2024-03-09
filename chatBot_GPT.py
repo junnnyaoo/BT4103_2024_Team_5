@@ -341,6 +341,43 @@ def update_message(ack, body, say):
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Category selection received: " + selected_options_string)
     say("Here are the latest news filtered by selected category: " + selected_options_string)
 
+# action listener for category news
+@app.action("date_select")
+def update_message(ack, body, say):
+    ack()
+    print(body)
+    
+    selected_options = []
+    selected_options.extend(option["value"] for option in body['state']['values']["category_checkboxes"]['checkboxes-action']['selected_options'])
+    selected_options_string = ", ".join(selected_options)
+    client.chat_delete(channel = body['channel']['id'],ts = body['message']['ts'])
+
+
+    say(channel= body['channel']['id'],
+            text = "Category selection received: " + selected_options_string,
+            blocks= blocks.news_date_block,
+            as_user =True)
+    
+import re
+# action listener for category news
+@app.action("date_selected")
+def update_message(ack, body, say):
+    ack()
+    print("\nHERE")
+    print(body)
+    print(body['message']['text'])
+    split_string = body['message']['text'].split("Category selection received: ")[1]
+    # Split the categories
+    selected_categories = split_string.split(", ")
+    cleaned_selected_categories = []
+    for item in selected_categories:
+        cleaned_selected_categories.append(item.replace("&amp;", "&"))
+    start_date = body['state']['values']['Start']['datepicker-action']['selected_date']
+    end_date = body['state']['values']['End']['datepicker-action']['selected_date']
+
+    say("Here are the news from " + start_date + " to " + end_date + " filtered by selected category: " + ", ".join(cleaned_selected_categories))
+    say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain2, collection, cleaned_selected_categories, [start_date,end_date]))
+
 # for all message handler for Slack
 @app.message(".*")
 def messaage_handler(message, say, logger):

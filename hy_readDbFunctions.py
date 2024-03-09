@@ -1,11 +1,31 @@
 #function to get latest news at the moment
-def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories):
+def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories, start_end_date = []):
     if 'All' in selected_categories:
-        sorted_news = collection.find().sort("published_at", -1)
+        
+        if len(start_end_date) != 0:
+            query = {
+                "category": {"$in": selected_categories},
+                "published_at": {
+                    "$gte": start_end_date[0],
+                    "$lte": start_end_date[1]
+                }
+            }
+            # Sort the filtered news by published_at in descending order
+            sorted_news = collection.find(query).sort("published_at", -1)
+        else:
+            sorted_news = collection.find().sort("published_at", -1)
     else:
-        print(selected_categories)
-        # Query to filter news by categories
-        query = {"category": {"$in": selected_categories}}
+        if len(start_end_date) != 0:
+            query = {
+                "category": {"$in": selected_categories},
+                "published_at": {
+                    "$gte": start_end_date[0],
+                    "$lte": start_end_date[1]
+                }
+            }
+        else:
+            # Query to filter news by categories
+            query = {"category": {"$in": selected_categories}}
 
         # Sort the filtered news by published_at in descending order
         sorted_news = collection.find(query).sort("published_at", -1)
@@ -24,12 +44,12 @@ def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories):
         data += "*Date of Article*: " + str(news["published_at"])  + "\n"
         
         #for deployment only
-        data += "*information*: " + str(news["news_data"])  + "\n"
-        output = chatgpt_chain.predict(human_input = data, add_info="") 
-        output = output.strip()
-        latest_news += output + "\n\n"
+        # data += "*information*: " + str(news["news_data"])  + "\n"
+        # output = chatgpt_chain.predict(human_input = data, add_info="") 
+        # output = output.strip()
+        # latest_news += output + "\n\n"
 
-        # latest_news += data + "\n\n"
+        latest_news += data + "\n\n"
 
         if n == 5:
             break
