@@ -41,10 +41,10 @@ def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories, sta
         #for testing and deployment
         data += "*Title*: " + str(news["title"]) + "\n"
         data += "*Website Link*: " + str(news['url']) + "\n"
-        data += "*Date of Article*: " + str(news["published_at"])  + "\n"
+        data += "*Date of Article*: " + str(news["date"])  + "\n"
         
         #for deployment only
-        # data += "*information*: " + str(news["news_data"])  + "\n"
+        # data += "*information*: " + str(news["content"])  + "\n"
         # output = chatgpt_chain.predict(human_input = data, add_info="") 
         # output = output.strip()
         # latest_news += output + "\n\n"
