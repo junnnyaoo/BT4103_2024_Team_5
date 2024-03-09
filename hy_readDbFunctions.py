@@ -1,10 +1,10 @@
 #function to get latest news at the moment
 def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories, start_end_date = []):
+    print(start_end_date)
     if 'All' in selected_categories:
         
         if len(start_end_date) != 0:
             query = {
-                "category": {"$in": selected_categories},
                 "published_at": {
                     "$gte": start_end_date[0],
                     "$lte": start_end_date[1]
