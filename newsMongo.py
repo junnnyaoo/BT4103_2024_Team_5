@@ -15,9 +15,10 @@ from urllib.parse import urlparse
 
 # Initial Setup
 api_key = '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'
-mongo_client = MongoClient("mongodb+srv://junyao57:XAjJo3QKR1It9PZm@slackbot.8rfyu53.mongodb.net/?retryWrites=true&w=majority")
+mongo_client = MongoClient("mongodb+srv://newu:new1@cluster0.y8brcfm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = mongo_client.get_database("news_articles")
-collection = db.get_collection("demo")
+# collection = db.get_collection("cloud_technology")
+newsArticleCollection = db["newsArticleCollection"]
 newsapi = NewsApiClient(api_key='0f1e87fe95c44a81ad7e1f80054bc8c4')
 
 # Getting Full Content from url from newsAPI
@@ -55,7 +56,7 @@ def categorizer_GPT(article_insert):
         
         AI includes Discriminative AI, Machine Learning, Generative AI
 
-        Quantum includes Quantum Internet, Quantum Communications, Quatum Computing
+        Quantum Computing includes Quantum Internet, Quantum Communications, Quatum Computing
 
         Green Computing includes Green Serverless Computing, Green Edge Applications, Green Data Streaming
 
@@ -67,8 +68,8 @@ def categorizer_GPT(article_insert):
 
         Communications Technologies includes 5G, Networks, Seamless
 
-        However, if the content is not applicable to any category that you can categorise to your best ability, classify them as 'General'.
-        If you do not know the category, just categorise as general.
+        However, if the article is not applicable to any category that you can categorise to your best ability, classify them as 'General'. However, this should be the last resort if
+        the article does not fit into the categories at all.
 
         Make sure that there are no spacing before the first word.
 
@@ -119,13 +120,25 @@ def getFullContent(url):
 # test_article= 'What the researchers have to say about the AI worm\n\n“\n\nThe study demonstrates that attackers can insert such prompts into inputs that, when processed by GenAI models, prompt the model to replicate the input as output (replication) and engage in malicious activities (payload). Additionally, these inputs compel the agent to deliver them (propagate) to new agents by exploiting the connectivity within the GenAI ecosystem. We demonstrate the application of Morris II against GenAI-powered email assistants in two use cases (spamming and exfiltrating personal data), under two settings (black-box and white-box accesses), using two types of input data (text and images).”\n\nSpamming: Morris II generated and sent spam emails through the compromised email assistant.\n\nMorris II generated and sent spam emails through the compromised email assistant. Data Exfiltration: The worm extracted sensitive personal data from the infected system.\n\nComPromptMized: Unleashing Zero-click Worms that Target GenAI-Powered Applications\n\nWhat AI companies said about the worm\n\nA group of researchers have developed a prototype AI worm called Morris II . According to the research papers (spotted by Wired), this first-generation AI worm can steal data, spread malware and spam users through AI-powered email assistants . However, it\'s important to note that this research was conducted in a controlled environment and the worm has not been deployed in the real world.Yet, this development highlights the potential vulnerabilities in generative AI models and emphasises the need for strict security measures.The research team, comprising Ben Nassi of Cornell Tech, Stav Cohen of the Israel Institute of Technology, and Ron Bitton of Intuit, named the worm after the original Morris worm. This notorious computer worm unleashed in 1988. Unlike its predecessor, Morris II targets AI apps, specifically those using large language models (LLMs) like Gemini Pro , ChatGPT 4.0, and LLaVA, to generate text and images.The worm uses a technique called " adversarial self-replicating prompts ." These prompts, when fed into the LLM, trick the model into replicating them and initiating malicious actions. This includes:The researchers described:The researchers successfully demonstrated the worm\'s capabilities in two scenarios:The researchers said that AI worms like this can help cyber criminals to extract confidential information, including credit card details, social security numbers and more. They also uploaded a video on YouTube to explain how the worm works:In a statement, an OpenAI spokesperson said: “They appear to have found a way to exploit prompt-injection type vulnerabilities by relying on user input that hasn’t been checked or filtered.”The spokesperson said that the company is making its systems more resilient and added that developers should use methods that ensure they are not working with harmful input.Meanwhile, Google refused to comment about the research.'
 # print(categorizer_GPT(test_article))
 
+# tech_news = newsapi.get_everything(language='en', q = 'quantum computing', page_size=10)
+# print(tech_news)
+
+# article = Article('https://gizmodo.com/google-launch-competition-figure-out-quantum-computers-1851308439')
+# article.download()
+# article.parse()
+
+# newsCategory = categorizer_GPT(article.text)
+# print(newsCategory)
+
+
 
 def articleScrapAndStore():
-    tech_top_headlines = newsapi.get_top_headlines(language='en',category= 'technology',)
+    # tech_top_headlines = newsapi.get_top_headlines(language='en',category= 'technology',)
+    tech_news = newsapi.get_everything(language='en', q = 'AI OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies')
     article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
 
-    if tech_top_headlines['status'] == 'ok':
-        articles = tech_top_headlines['articles']
+    if tech_news['status'] == 'ok':
+        articles = tech_news['articles']
         for article in articles:
             if article['url'].startswith('https://www.youtube.com/watch?'):
                 continue
@@ -164,7 +177,7 @@ def articleScrapAndStore():
                 'content': content,
                 'embeddedContent': embeddedContent
             }
-            collection.insert_one(article_data)
+            newsArticleCollection.insert_one(article_data)
 
 
 
@@ -209,7 +222,7 @@ def urlScrapeAndStore(url):
         'embeddedContent': embeddedContent
         }
 
-    collection.insert_one(article_data)
+    newsArticleCollection.insert_one(article_data)
    
     output = {
         "Title": title,
@@ -220,7 +233,7 @@ def urlScrapeAndStore(url):
     return output
 
 articleScrapAndStore()
-# for document in collection.find():
+# for document in newsArticleCollection.find():
 #     print(document)
 
 # urlScrapeAndStore("https://medium.com/@123carmartin321/the-quantum-leap-how-quantum-computing-is-solving-the-worlds-most-complex-problems-85ac8adb43d6")
