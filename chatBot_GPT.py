@@ -231,6 +231,9 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
     #this is for scheduling a prompt to 
     #ask user to choose schedule again
     #due to 120 days limit
+    if seconds + 15 >= 60:
+        minutes += 1
+        seconds = seconds - 60
     tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
     scheduled_time = datetime.time(now.hour, minutes, seconds + 15)
     schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
