@@ -5,13 +5,12 @@ from datetime import datetime
 import pytz
 from newspaper import Article, ArticleException
 from requests.exceptions import HTTPError
-from newsdataapi import NewsDataApiClient
 from langchain import OpenAI, ConversationChain, LLMChain, PromptTemplate
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain_openai import OpenAIEmbeddings
 from pymongo import MongoClient
-import os
+from urllib.parse import urlparse
 
 
 # Initial Setup
@@ -50,9 +49,23 @@ def categorizer_GPT(article_insert):
     try:
         #Defining Function + ChatGPT
         #Langchain implementation
-        template = """ You are a bot that will be given an article and to categorise it. There are seven categories, so only pick one. The seven
-        categories are 'Cloud Computing & Infrastructure', 'Consumer Technology', 'Cyber Security & Privacy', 'Data Science & AI', 'Decentralised Computing',
-        'Digital Transformation', 'IT & Network Infrastructure'.
+        template = """ You are a bot that will be given an article and to categorise it. There are seven categories, so pick the best described one. The seven
+        categories are 'AI', 'Quantum Computing', 'Green Computing', 'Robotics', 'Trust Technologies',
+        'Anti-disinformation technologies', 'Communications Technologies'.
+        
+        AI includes Discriminative AI, Machine Learning, Generative AI
+
+        Quantum includes Quantum Internet, Quantum Communications, Quatum Computing
+
+        Green Computing includes Green Serverless Computing, Green Edge Applications, Green Data Streaming
+
+        Robotics
+
+        Trust Technologies includes Privacy Enhancing Technologies, Regulation Technologies, Al Governance Technologies
+
+        Anti-disinformation technologies includes Content Provenance Technologies, Anti-misinformation technologies, Detection of Generated Al content
+
+        Communications Technologies includes 5G, Networks, Seamless
 
         However, if the content is not applicable to any category that you can categorise to your best ability, classify them as 'General'.
         If you do not know the category, just categorise as general.
@@ -85,7 +98,21 @@ def categorizer_GPT(article_insert):
     except Exception as e:
         print(f"An error occurred: {e}")
         return "General"  # Return 'General' category in case of error
+    
 
+
+    # Getting Full Content from url from newsAPI
+def getFullContent(url):
+    try:
+        article = Article(url)
+        article.download()
+        article.parse()
+        return article.text
+    except ArticleException as e:
+        print("Failed to parse article:", e)
+    except HTTPError as e:
+        print("HTTP Error:", e)
+    return None
 
 
 ## Ignore
@@ -95,25 +122,105 @@ def categorizer_GPT(article_insert):
 
 def articleScrapAndStore():
     tech_top_headlines = newsapi.get_top_headlines(language='en',category= 'technology',)
+    article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
 
     if tech_top_headlines['status'] == 'ok':
         articles = tech_top_headlines['articles']
         for article in articles:
             if article['url'].startswith('https://www.youtube.com/watch?'):
                 continue
+
+            # Extract Source 
+            source  = article['source']['name']
+
+            # Extract author
+            author = article['author']
+
+            # Extract title
+            title  = article['title']
+
+            # Extract url
+            url = article['url']
+
+            # Scrap the full content from the URL
+            content  = getFullContent(article['url'])
+
+            # News article content embedding 
+            embeddedContent  = article_embeddings.embed_query(content)
+
+            # Article published date converted to SGT
+            date = getArticleDate(article['publishedAt'])
+
+            # News article sub-categorisation
+            newsCategory = categorizer_GPT(content)
+
             article_data = {
-                'source': article['source']['name'], #Only taking out the name
-                'author': article['author'],
-                'newsCategory': categorizer_GPT(getFullContent(article['url'])),
-                'description': article['description'],
-                'title': article['title'],
-                'url': article['url'],
-                'date': getArticleDate(article['publishedAt']),
-                'content': getFullContent(article['url'])   
+                'source': source, #Only taking out the name
+                'author': author,
+                'newsCategory': newsCategory,
+                'title': title,
+                'url': url,
+                'date': date,
+                'content': content,
+                'embeddedContent': embeddedContent
             }
             collection.insert_one(article_data)
-            
 
+
+
+def urlScrapeAndStore(url):
+
+    # url = url[1:-1]
+    article = Article(url)
+    article.download()
+    article.parse()
+
+    # Extract source
+    parsed_url = urlparse(url)
+    source  = parsed_url.netloc
+    
+    # Extract author
+    author = article.authors[0]
+
+    # Extract title
+    title  = article.title
+    
+    # Scrap the full content from the URL
+    content  = article.text
+
+    # News article content embedding 
+    article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
+    embeddedContent  = article_embeddings.embed_query(content)
+
+    # Article published date converted to SGT
+    date = article.publish_date.strftime("%Y-%m-%dT%H:%M:%S SGT")
+
+    # News article sub-categorisation
+    newsCategory = categorizer_GPT(content)
+
+    article_data = {
+        'source': source, 
+        'author': author,
+        'newsCategory': newsCategory,
+        'title': title,
+        'url': url,
+        'date': date,
+        'content': content,
+        'embeddedContent': embeddedContent
+        }
+
+    collection.insert_one(article_data)
+   
+    output = {
+        "Title": title,
+        "Link": url,
+        "Article": content
+    }
+
+    return output
+
+# articleScrapAndStore()
 # for document in collection.find():
 #     print(document)
-articleScrapAndStore()
+
+# urlScrapeAndStore("https://medium.com/@123carmartin321/the-quantum-leap-how-quantum-computing-is-solving-the-worlds-most-complex-problems-85ac8adb43d6")
