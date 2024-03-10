@@ -1,11 +1,13 @@
 #function to get latest news at the moment
 def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories, start_end_date = []):
+
+    print(selected_categories)
     print(start_end_date)
     if 'All' in selected_categories:
         
         if len(start_end_date) != 0:
             query = {
-                "published_at": {
+                "date": {
                     "$gte": start_end_date[0],
                     "$lte": start_end_date[1]
                 }
@@ -16,16 +18,17 @@ def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories, sta
             sorted_news = collection.find().sort("published_at", -1)
     else:
         if len(start_end_date) != 0:
+            print("date")
             query = {
-                "category": {"$in": selected_categories},
-                "published_at": {
+                "newsCategory": {"$in": selected_categories},
+                "date": {
                     "$gte": start_end_date[0],
                     "$lte": start_end_date[1]
                 }
             }
         else:
             # Query to filter news by categories
-            query = {"category": {"$in": selected_categories}}
+            query = {"newsCategory": {"$in": selected_categories}}
 
         # Sort the filtered news by published_at in descending order
         sorted_news = collection.find(query).sort("published_at", -1)
@@ -34,7 +37,7 @@ def getLatestNewsCategorized(chatgpt_chain, collection, selected_categories, sta
     latest_news, n = "", 1
     
     for i, news in enumerate(sorted_news):
-
+        print(news)
         data = ""
         latest_news += "*Article #" + str(n) + "*\n"
 

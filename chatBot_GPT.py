@@ -34,8 +34,8 @@ template_2 = template_2
 
 # Initialize MongoDB
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
-db = mongo_client.get_database("changestream")
-collection = db.get_collection("collection")
+db = mongo_client.get_database("news_articles")
+collection = db.get_collection("hy_cloud_technology")
 
 
 #Langchain implementation
@@ -372,10 +372,10 @@ def update_message(ack, body, say):
     cleaned_selected_categories = []
     for item in selected_categories:
         cleaned_selected_categories.append(item.replace("&amp;", "&"))
-    start_date = body['state']['values']['Start']['datepicker-action']['selected_date']
-    end_date = body['state']['values']['End']['datepicker-action']['selected_date']
+    start_date = body['state']['values']['Start']['datepicker-action']['selected_date'] + "T00:00:00 SGT"
+    end_date = body['state']['values']['End']['datepicker-action']['selected_date'] + "T23:59:59 SGT"
 
-    say("Here are the news from " + start_date + " to " + end_date + " filtered by selected category: " + ", ".join(cleaned_selected_categories))
+    client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Here are the news from " + start_date + " to " + end_date + " filtered by selected category: " + ", ".join(cleaned_selected_categories))
     say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain2, collection, cleaned_selected_categories, [start_date,end_date]))
 
 # for all message handler for Slack
