@@ -372,11 +372,12 @@ def update_message(ack, body, say):
     cleaned_selected_categories = []
     for item in selected_categories:
         cleaned_selected_categories.append(item.replace("&amp;", "&"))
-    start_date = body['state']['values']['Start']['datepicker-action']['selected_date'] + "T00:00:00 SGT"
-    end_date = body['state']['values']['End']['datepicker-action']['selected_date'] + "T23:59:59 SGT"
+    start_date = body['state']['values']['Start']['datepicker-action']['selected_date']
+    end_date = body['state']['values']['End']['datepicker-action']['selected_date']
 
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Here are the news from " + start_date + " to " + end_date + " filtered by selected category: " + ", ".join(cleaned_selected_categories))
-    say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain2, collection, cleaned_selected_categories, [start_date,end_date]))
+    #note that start and end date needs to be provided the hh mm ss for comparison later on
+    say(hy_readDbFunctions.getNews(chatgpt_chain2, collection, cleaned_selected_categories, [start_date + "T00:00:00",end_date  + "T23:59:59"]))
 
 # for all message handler for Slack
 @app.message(".*")
@@ -397,7 +398,7 @@ def messaage_handler(message, say, logger):
         for item in selected_categories:
             cleaned_selected_categories.append(item.replace("&amp;", "&"))
         #read news from db
-        say(hy_readDbFunctions.getLatestNewsCategorized(chatgpt_chain2, collection, cleaned_selected_categories))
+        say(hy_readDbFunctions.getNews(chatgpt_chain2, collection, cleaned_selected_categories))
     
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
         response = user_query(message['text'])
