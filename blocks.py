@@ -144,51 +144,51 @@ news_sched_category_blocks = [
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Cloud Computing & Infrastructure"
+							"text": "AI"
 						},
-						"value": "Cloud Computing & Infrastructure"
+						"value": "AI"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Consumer Technology"
+							"text": "Quantum Computing"
 						},
-						"value": "Consumer Technology"
+						"value": "Quantum Computing"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Cyber Security & Privacy"
+							"text": "Green Computing"
 						},
-						"value": "Cyber Security & Privacy"
+						"value": "Green Computing"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Data Science & AI"
+							"text": "Robotics"
 						},
-						"value": "Data Science & AI"
+						"value": "Robotics"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Decentralised Computing"
+							"text": "Trust Technologies"
 						},
-						"value": "Decentralised Computing"
+						"value": "Trust Technologies"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Digital Transformation"
+							"text": "Anti-disinformation technologies"
 						},
-						"value": "Digital Transformation"
+						"value": "Anti-disinformation technologies"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "IT & Network Infrastructure"
+							"text": "Communications Technologies"
 						},
-						"value": "IT & Network Infrastructure"
+						"value": "Communications Technologies"
 					}
 				],
 				"action_id": "checkboxes-action"
@@ -251,51 +251,51 @@ news_category_blocks = [
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Cloud Computing & Infrastructure"
+							"text": "AI"
 						},
-						"value": "Cloud Computing & Infrastructure"
+						"value": "AI"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Consumer Technology"
+							"text": "Quantum Computing"
 						},
-						"value": "Consumer Technology"
+						"value": "Quantum Computing"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Cyber Security & Privacy"
+							"text": "Green Computing"
 						},
-						"value": "Cyber Security & Privacy"
+						"value": "Green Computing"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Data Science & AI"
+							"text": "Robotics"
 						},
-						"value": "Data Science & AI"
+						"value": "Robotics"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Decentralised Computing"
+							"text": "Trust Technologies"
 						},
-						"value": "Decentralised Computing"
+						"value": "Trust Technologies"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Digital Transformation"
+							"text": "Anti-disinformation technologies"
 						},
-						"value": "Digital Transformation"
+						"value": "Anti-disinformation technologies"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "IT & Network Infrastructure"
+							"text": "Communications Technologies"
 						},
-						"value": "IT & Network Infrastructure"
+						"value": "Communications Technologies"
 					}
 				],
 				"action_id": "checkboxes-action"
