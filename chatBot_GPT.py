@@ -35,7 +35,7 @@ template_2 = template_2
 # Initialize MongoDB
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 db = mongo_client.get_database("news_articles")
-collection = db.get_collection("demo_cloud_technology")
+collection = db.get_collection("demo")
 
 
 #Langchain implementation
