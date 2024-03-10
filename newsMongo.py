@@ -15,9 +15,9 @@ from urllib.parse import urlparse
 
 # Initial Setup
 api_key = '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'
-mongo_client = MongoClient("mongodb+srv://newu:new1@cluster0.y8brcfm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+mongo_client = MongoClient("mongodb+srv://junyao57:XAjJo3QKR1It9PZm@slackbot.8rfyu53.mongodb.net/?retryWrites=true&w=majority")
 db = mongo_client.get_database("news_articles")
-collection = db.get_collection("cloud_technology")
+collection = db.get_collection("demo_cloud_technology")
 newsapi = NewsApiClient(api_key='0f1e87fe95c44a81ad7e1f80054bc8c4')
 
 # Getting Full Content from url from newsAPI
@@ -219,7 +219,7 @@ def urlScrapeAndStore(url):
 
     return output
 
-# articleScrapAndStore()
+articleScrapAndStore()
 # for document in collection.find():
 #     print(document)
 
