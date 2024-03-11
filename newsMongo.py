@@ -11,15 +11,19 @@ from langchain.memory import ConversationBufferMemory
 from langchain_openai import OpenAIEmbeddings
 from pymongo import MongoClient
 from urllib.parse import urlparse
-
+from dotenv import load_dotenv
+import os
 
 # Initial Setup
-api_key = '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'
-mongo_client = MongoClient("mongodb+srv://newu:new1@cluster0.y8brcfm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+load_dotenv()
+newsapi = NewsApiClient(api_key='0f1e87fe95c44a81ad7e1f80054bc8c4')
+api_key = os.getenv("OPENAI_API_KEY")
+mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 db = mongo_client.get_database("news_articles")
+collection = db.get_collection("demo")
 # collection = db.get_collection("cloud_technology")
 newsArticleCollection = db["newsArticleCollection"]
-newsapi = NewsApiClient(api_key='0f1e87fe95c44a81ad7e1f80054bc8c4')
+
 
 # Getting Full Content from url from newsAPI
 def getFullContent(url):
@@ -159,13 +163,18 @@ def articleScrapAndStore():
             content  = getFullContent(article['url'])
 
             # News article content embedding 
-            embeddedContent  = article_embeddings.embed_query(content)
+            try:
+                embeddedContent  = article_embeddings.embed_query(content)
+            except:
+                continue
+            #prevent errors on sites that cannot be scrap
+
 
             # Article published date converted to SGT
             date = getArticleDate(article['publishedAt'])
 
             # News article sub-categorisation
-            newsCategory = categorizer_GPT(content)
+            newsCaegory = categorizer_GPT(content)
 
             article_data = {
                 'source': source, #Only taking out the name
@@ -178,6 +187,7 @@ def articleScrapAndStore():
                 'embeddedContent': embeddedContent
             }
             newsArticleCollection.insert_one(article_data)
+            collection.insert_one(article_data)
 
 
 
