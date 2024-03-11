@@ -68,12 +68,13 @@ def getNews(chatgpt_chain, collection, selected_categories, start_end_date = [])
             data += "*Date of Article*: " + str(news["date"])  + "\n"
             
             #for deployment only
-            # data += "*information*: " + str(news["content"])  + "\n"
-            # output = chatgpt_chain.predict(human_input = data, add_info="") 
-            # output = output.strip()
-            # latest_news += output + "\n\n"
+            data += "*information*: " + str(news["content"])  + "\n"
+            output = chatgpt_chain.predict(human_input = data, add_info="") 
+            output = output.strip()
+            latest_news += output + "\n\n"
 
-            latest_news += data + "\n\n"
+            #comment this if the above is uncommented
+            # latest_news += data + "\n\n"
 
             if n == 5:
                 break
