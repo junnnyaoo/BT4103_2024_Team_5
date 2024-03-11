@@ -18,6 +18,7 @@ import blocks
 #db functions
 import hy_readDbFunctions
 import logging
+from newsMongo import urlScrapeAndStore
 # Import WebClient from Python SDK (github.com/slackapi/python-slack-sdk)
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
@@ -39,7 +40,7 @@ collection = db.get_collection("demo")
 
 
 #Langchain implementation
-template1 = """ You are a bot that will either provide news recommendations, news summaries or answer questions related to the news asked by users.
+template1 = """ You are  a bot that will either provide news recommendations or answer questions related to the news asked by users.
     You are speaking to a professional so keep the answer informative and concise.
         
     If asked for news recommendations based on certain keywords or topics, return the recommendations using the additional information provided in this format:
@@ -54,7 +55,7 @@ template1 = """ You are a bot that will either provide news recommendations, new
 
         Additional Information: {add_info}
 
-        History:{history}
+        {history}
 
         Human: {human_input}
         Assistant:"""
@@ -62,7 +63,7 @@ template1 = """ You are a bot that will either provide news recommendations, new
 template2 = """ You are a bot that will either provide news recommendations, news summaries or answer questions related to the news asked by users.
     You are speaking to a professional so keep the answer informative and concise.
 
-    You are given an article(s) to summarize. Please respond with the following using information given.
+    You are given an article(s) to summarize. Please respond with the following using information given. For the summary, summarize it using EXACTLY THREE LINES ONLY. If you can't do it, don't output.
     Title: <Title Name>
     Website Link: <Link of Website>
     Date of Article: <Get the latest date of publication>
@@ -70,10 +71,12 @@ template2 = """ You are a bot that will either provide news recommendations, new
     Key Topic: <Key topic of this article>
     Sentiment: <conduct sentiment analysis and let them know the sentiment>
     Trends & Statistics: <Include any trends and statistics found, make it short and do not repeat it in summary>
-    Summary: <The summarised version of the article>
+    Summary: <The summarised version of the article in EXACTLY 3 lines> Please summarize using EXACTLY THREE lines. No more no less.
 
         Additional Information: {add_info}
 
+        {history}
+        
         Human: {human_input}
         Assistant:
 """
@@ -91,14 +94,14 @@ chatgpt_chain1 = LLMChain(
     llm = OpenAI(openai_api_key=api_key,model="gpt-3.5-turbo-instruct", temperature=0), 
     prompt=prompt1, 
     verbose=True, 
-    memory=ConversationBufferMemory(memory_key="history", input_key="human_input")
+    memory=ConversationBufferMemory(memory_key="history", input_key="human_input", k=2)
 )
 
 chatgpt_chain2 = LLMChain(
     llm = OpenAI(openai_api_key=api_key,model="gpt-3.5-turbo-instruct", temperature=0), 
     prompt=prompt2, 
     verbose=True, 
-    memory=ConversationBufferMemory(memory_key="history", input_key="human_input")
+    memory=ConversationBufferMemory(memory_key="history", input_key="human_input", k=2)
 )
 
 
@@ -123,31 +126,31 @@ def vector_search(query, collection):
     return list(results) # compile results into a list
 
 
-def scrape_and_store(url):
-    url = url[1:-1]
-    article = Article(url)
-    article.download()
-    article.parse()
-    title = article.title
-    content = article.text
-    embeddings = article_embeddings.embed_query(content)
-    article_json = {
-        'title': title,
-        'link': url,
-        'data': embeddings,
-        'article': content,
-        # date how ah?        
-    }
+# def scrape_and_store(url):
+#     url = url[1:-1]
+#     article = Article(url)
+#     article.download()
+#     article.parse()
+#     title = article.title
+#     content = article.text
+#     embeddings = article_embeddings.embed_query(content)
+#     article_json = {
+#         'title': title,
+#         'link': url,
+#         'data': embeddings,
+#         'article': content,
+#         # date how ah?        
+#     }
 
-    collection.insert_one(article_json)
+#     collection.insert_one(article_json)
    
-    output = {
-        "Title": title,
-        "Link": url,
-        "Article": content
-    }
+#     output = {
+#         "Title": title,
+#         "Link": url,
+#         "Article": content
+#     }
 
-    return output
+#     return output
 
 
 def find_url(text):
@@ -167,9 +170,11 @@ def user_query(query):
         articles = []
         for x in url:
             try:
-                article = scrape_and_store(x)
+                article = urlScrapeAndStore(x)
                 articles.append(article)
                 output = chatgpt_chain2.predict(human_input = query, add_info=articles)
+                print(output)
+
             except:
                 output = "There was a problem accessing one of the links. Please ensure that the link is working."
                 break

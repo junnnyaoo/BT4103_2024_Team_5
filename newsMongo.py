@@ -16,7 +16,7 @@ import os
 
 # Initial Setup
 load_dotenv()
-newsapi = NewsApiClient(api_key='0f1e87fe95c44a81ad7e1f80054bc8c4')
+newsapi = NewsApiClient(os.getenv("NEWS_API_KEY"))
 api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 db = mongo_client.get_database("news_articles")
@@ -174,7 +174,7 @@ def articleScrapAndStore():
             date = getArticleDate(article['publishedAt'])
 
             # News article sub-categorisation
-            newsCaegory = categorizer_GPT(content)
+            newsCategory = categorizer_GPT(content)
 
             article_data = {
                 'source': source, #Only taking out the name
@@ -193,7 +193,7 @@ def articleScrapAndStore():
 
 def urlScrapeAndStore(url):
 
-    # url = url[1:-1]
+    url = url[1:-1]
     article = Article(url)
     article.download()
     article.parse()
@@ -242,7 +242,7 @@ def urlScrapeAndStore(url):
 
     return output
 
-articleScrapAndStore()
+# articleScrapAndStore()
 # for document in newsArticleCollection.find():
 #     print(document)
 

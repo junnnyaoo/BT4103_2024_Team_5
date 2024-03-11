@@ -60,6 +60,8 @@ template2 = """ You are a bot that will either provide news recommendations, new
 
         Additional Information: {add_info}
 
+        History: {history}
+
         Human: {human_input}
         Assistant:
 """
@@ -116,23 +118,28 @@ def scrape_and_store(url):
     article.parse()
     title = article.title
     content = article.text
+    # source =
+    # author = article.authors
+    # date = article.publish_date
     embeddings = article_embeddings.embed_query(content)
     article_json = {
+        # 'source': source,
+        # 'author': author,
+        # 'date': date,
+        # 'news_category': category, ### matthew's code
         'title': title,
         'link': url,
         'data': embeddings,
-        'article': content,
-        # date how ah?        
+        'article': content,     
     }
 
-    collection.insert_one(article_json)
+    # collection.insert_one(article_json)
    
     output = {
-        "Title": title,
-        "Link": url,
-        "Article": content
+        'title': title,
+        'link': url,
+        'article': content
     }
-
     return output
 
 
