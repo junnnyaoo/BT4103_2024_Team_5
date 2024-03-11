@@ -203,7 +203,7 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
     # max no. of schedule slack api allows is 120days
     while next_schedule < 120:
         #-------------------FOR TESTING---------------------------
-        #code will show 15 second later
+        #code will show 25 second later
         #wont work if your time now is close to the next hour
         if seconds >= 60:
             minutes += 1
@@ -231,6 +231,7 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
     #this is for scheduling a prompt to 
     #ask user to choose schedule again
     #due to 120 days limit
+    #for testing, to show schedule message expiry
     if seconds + 15 >= 60:
         minutes += 1
         seconds = seconds - 60
