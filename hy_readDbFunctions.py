@@ -36,13 +36,13 @@ def getNews(chatgpt_chain, collection, selected_categories, start_end_date = [])
     #     sorted_news = collection.find(query).sort("published_at", -1)
     
     if 'All' in selected_categories:
-        sorted_news = collection.find().sort("published_at", -1)
+        sorted_news = collection.find().sort("date", -1)
     else:
         # Query to filter news by categories
         query = {"newsCategory": {"$in": selected_categories}}
 
         # Sort the filtered news by published_at in descending order
-        sorted_news = collection.find(query).sort("published_at", -1)
+        sorted_news = collection.find(query).sort("date", -1)
 
     #only top 5 news retrieved
     latest_news, n = "", 1
