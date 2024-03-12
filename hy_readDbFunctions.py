@@ -1,40 +1,15 @@
 from datetime import datetime
+import nltk
+from nltk.corpus import stopwords
+nltk.download('stopwords')
+import string
 
 #function to get latest news at the moment
 def getNews(chatgpt_chain, collection, selected_categories, start_end_date = []):
 
     print(selected_categories)
     print(start_end_date)
-    # if 'All' in selected_categories:
-        
-    #     if len(start_end_date) != 0:
-    #         query = {
-    #             "date": {
-    #                 "$gte": start_end_date[0],
-    #                 "$lte": start_end_date[1]
-    #             }
-    #         }
-    #         # Sort the filtered news by published_at in descending order
-    #         sorted_news = collection.find(query).sort("published_at", -1)
-    #     else:
-    #         sorted_news = collection.find().sort("published_at", -1)
-    # else:
-    #     if len(start_end_date) != 0:
-    #         print("date")
-    #         query = {
-    #             "newsCategory": {"$in": selected_categories},
-    #             "date": {
-    #                 "$gte": start_end_date[0],
-    #                 "$lte": start_end_date[1]
-    #             }
-    #         }
-    #     else:
-    #         # Query to filter news by categories
-    #         query = {"newsCategory": {"$in": selected_categories}}
 
-    #     # Sort the filtered news by published_at in descending order
-    #     sorted_news = collection.find(query).sort("published_at", -1)
-    
     if 'All' in selected_categories:
         sorted_news = collection.find().sort("date", -1)
     else:
@@ -63,13 +38,23 @@ def getNews(chatgpt_chain, collection, selected_categories, start_end_date = [])
             latest_news += "*Article #" + str(n) + "*\n"
 
             #for testing and deployment
-            data += "*Title*: " + str(news["title"]) + "\n"
-            data += "*Website Link*: " + str(news['url']) + "\n"
-            data += "*Date of Article*: " + str(news["date"])  + "\n"
+            data += "*Title*: " + str(news["title"])
+            data += "*Website Link*: " + str(news['url'])
+            data += "*Date of Article*: " + str(news["date"])
             
             #for deployment only
-            data += "*information*: " + str(news["content"])  + "\n"
+
+            # Filter out stop words and punctuation from the tokenized words, then join them back into a single string for gpt summarization
+            words = nltk.word_tokenize(news["content"])
+            stop_words = set(stopwords.words('english'))
+            punctuation = set(string.punctuation)
+            filtered_words = [word for word in words if word.lower() not in stop_words and word not in punctuation]
+            filtered_text = ' '.join(filtered_words)
+
+            data += "*information*: " + str(filtered_text)
+
             output = chatgpt_chain.predict(human_input = data, add_info="") 
+            print(len(output["choices"][0]["text"].split()))
             output = output.strip()
             latest_news += output + "\n\n"
 
