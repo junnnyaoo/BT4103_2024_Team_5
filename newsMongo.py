@@ -20,9 +20,9 @@ newsapi = NewsApiClient(os.getenv("NEWS_API_KEY"))
 api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 db = mongo_client.get_database("news_articles")
-collection = db.get_collection("demo")
+# collection = db.get_collection("demo")
 # collection = db.get_collection("cloud_technology")
-newsArticleCollection = db["newsArticleCollection"]
+newsArticleCollection = db["demo"]
 
 
 # Getting Full Content from url from newsAPI
@@ -143,51 +143,57 @@ def articleScrapAndStore():
 
     if tech_news['status'] == 'ok':
         articles = tech_news['articles']
+        count = 0
+
         for article in articles:
-            if article['url'].startswith('https://www.youtube.com/watch?'):
-                continue
+            if count < 18:
+                if article['url'].startswith('https://www.youtube.com/watch?'):
+                    continue
 
-            # Extract Source 
-            source  = article['source']['name']
+                # Extract Source 
+                source  = article['source']['name']
 
-            # Extract author
-            author = article['author']
+                # Extract author
+                author = article['author']
 
-            # Extract title
-            title  = article['title']
+                # Extract title
+                title  = article['title']
 
-            # Extract url
-            url = article['url']
+                # Extract url
+                url = article['url']
 
-            # Scrap the full content from the URL
-            content  = getFullContent(article['url'])
+                # Scrap the full content from the URL
+                content  = getFullContent(article['url'])
 
-            # News article content embedding 
-            try:
-                embeddedContent  = article_embeddings.embed_query(content)
-            except:
-                continue
-            #prevent errors on sites that cannot be scrap
+                # News article content embedding 
+                try:
+                    embeddedContent  = article_embeddings.embed_query(content)
+                except:
+                    continue
+                #prevent errors on sites that cannot be scrap
 
 
-            # Article published date converted to SGT
-            date = getArticleDate(article['publishedAt'])
+                # Article published date converted to SGT
+                date = getArticleDate(article['publishedAt'])
 
-            # News article sub-categorisation
-            newsCategory = categorizer_GPT(content)
+                # News article sub-categorisation
+                newsCategory = categorizer_GPT(content)
 
-            article_data = {
-                'source': source, #Only taking out the name
-                'author': author,
-                'newsCategory': newsCategory,
-                'title': title,
-                'url': url,
-                'date': date,
-                'content': content,
-                'embeddedContent': embeddedContent
-            }
-            newsArticleCollection.insert_one(article_data)
-            collection.insert_one(article_data)
+                article_data = {
+                    'source': source, #Only taking out the name
+                    'author': author,
+                    'newsCategory': newsCategory,
+                    'title': title,
+                    'url': url,
+                    'date': date,
+                    'content': content,
+                    'embeddedContent': embeddedContent
+                }
+                newsArticleCollection.insert_one(article_data)
+                # collection.insert_one(article_data)
+                count += 1    
+            else:
+                break
 
 
 
