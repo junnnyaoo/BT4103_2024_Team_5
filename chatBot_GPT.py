@@ -36,7 +36,7 @@ template_2 = template_2
 # Initialize MongoDB
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 db = mongo_client.get_database("news_articles")
-collection = db.get_collection("demo")
+collection = db.get_collection("newsArticleCollection")
 
 
 #Langchain implementation
@@ -55,7 +55,7 @@ template1 = """ You are  a bot that will either provide news recommendations or 
 
         Additional Information: {add_info}
 
-        {history}
+
 
         Human: {human_input}
         Assistant:"""
@@ -115,7 +115,7 @@ def vector_search(query, collection):
             "$vectorSearch": { # $vectorSearch is the specific function name
                 "index": "vector_index", # The search index I created on MongoDB
                 "queryVector": query_embedding, # The embedded query from the user that is used for searching
-                "path": "data", # The relevant field of the document that is used for searching (in this case the full text of the news article)
+                "path": "embeddedContent", # The relevant field of the document that is used for searching (in this case the full text of the news article)
                 "limit": 5, # How many results you want the vectorSearch to show
                 "numCandidates": 100 # How many documents you want vectorSearch to consider when searching
             }
@@ -184,7 +184,7 @@ def user_query(query):
 
         search_result = ''
         for result in get_knowledge:
-            search_result += f"Title: {result.get('title', 'N/A')}, Link: {result.get('link', 'N/A')}"
+            search_result += f"Title: {result.get('title', 'N/A')}, Link: {result.get('url', 'N/A')}"
         output = chatgpt_chain1.predict(human_input = query, add_info = search_result)  
         return output
 
