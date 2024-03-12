@@ -54,7 +54,6 @@ def getNews(chatgpt_chain, collection, selected_categories, start_end_date = [])
             data += "*information*: " + str(filtered_text)
 
             output = chatgpt_chain.predict(human_input = data, add_info="") 
-            print(len(output["choices"][0]["text"].split()))
             output = output.strip()
             latest_news += output + "\n\n"
 
