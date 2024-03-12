@@ -16,7 +16,7 @@ import datetime
 #import blocks from our blocks python file
 import blocks
 #db functions
-import hy_readDbFunctions
+import readDb_Functions
 import logging
 from newsMongo import urlScrapeAndStore
 # Import WebClient from Python SDK (github.com/slackapi/python-slack-sdk)
@@ -75,7 +75,7 @@ template2 = """ You are a bot that will either provide news recommendations, new
 
         Additional Information: {add_info}
 
-        {history}
+        History: {history}
         
         Human: {human_input}
         Assistant:
@@ -202,7 +202,7 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
     #-------------------FOR TESTING---------------------------
     #25sec later post msg for testing
     now = datetime.datetime.now()
-    seconds, minutes = now.second + 25, now.minute
+    seconds, minutes = now.second + 20, now.minute
     count, next_schedule, days_interval = 0, 0, int(days_interval)
 
     # max no. of schedule slack api allows is 120days
@@ -386,7 +386,7 @@ def update_message(ack, body, say):
 
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Here are the news from " + start_date + " to " + end_date + " filtered by selected category: " + ", ".join(cleaned_selected_categories))
     #note that start and end date needs to be provided the hh mm ss for comparison later on
-    say(hy_readDbFunctions.getNews(chatgpt_chain2, collection, cleaned_selected_categories, [start_date + "T00:00:00",end_date  + "T23:59:59"]))
+    say(readDb_Functions.getNews(collection, cleaned_selected_categories, [start_date + "T00:00:00",end_date  + "T23:59:59"]))
 
 # for all message handler for Slack
 @app.message(".*")
@@ -407,7 +407,7 @@ def messaage_handler(message, say, logger):
         for item in selected_categories:
             cleaned_selected_categories.append(item.replace("&amp;", "&"))
         #read news from db
-        say(hy_readDbFunctions.getNews(chatgpt_chain2, collection, cleaned_selected_categories))
+        say(readDb_Functions.getNews(collection, cleaned_selected_categories))
     
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
         response = user_query(message['text'])
