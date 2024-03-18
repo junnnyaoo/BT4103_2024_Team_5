@@ -53,11 +53,12 @@ def getNews(collection, selected_categories, start_end_date = []):
 
     for i, news in enumerate(sorted_news):
         
-        # Define the format of the date string and parse it
+        # Define the format of the date string and parse it if user selected date period
         if len(start_end_date) != 0:
             news["date"] = news["date"].rsplit(' ', 1)[0]
             date_time = datetime.strptime(news["date"], "%Y-%m-%dT%H:%M:%S")
 
+        #read from db if date period is not selected or date is within the range of user's selected date period
         if len(start_end_date) == 0 or start <= date_time <= end:
             data = ""
             latest_news += "*Article #" + str(n) + "*\n"
@@ -68,17 +69,12 @@ def getNews(collection, selected_categories, start_end_date = []):
             data += "*Date of Article*: " + str(news["date"])
             
             #for deployment only
-
             # Filter out stop words and punctuation from the tokenized words, then join them back into a single string for gpt summarization
             words = nltk.word_tokenize(news["content"])
             stop_words = set(stopwords.words('english'))
             punctuation = set(string.punctuation)
             filtered_words = [word for word in words if word.lower() not in stop_words and word not in punctuation]
             filtered_text = ' '.join(filtered_words)
-
-            #temporary fix for max token limitation (gpt-3.5 turbo instruct) will need to explore other gpt models or ways to summarize text
-            #fix for this now is by calling LLMChain as shown below for every summarization of news article
-            # filtered_text = filtered_text[:3000] if len(filtered_text) > 3700 else filtered_text
 
             data += "*information*: " + str(filtered_text)
 
@@ -101,6 +97,7 @@ def getNews(collection, selected_categories, start_end_date = []):
             n += 1
         else:
             continue
+    #remove "\n\n" for the last news
     latest_news = latest_news[:-2]  
 
     if len(latest_news) == 0:
