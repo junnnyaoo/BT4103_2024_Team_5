@@ -20,10 +20,10 @@ load_dotenv()
 newsapi = NewsApiClient(os.getenv("NEWS_API_KEY"))
 api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
-db = mongo_client.get_database("news_articles")
+db = mongo_client.get_database("matt_news_articles")
 # collection = db.get_collection("demo")
 # collection = db.get_collection("cloud_technology")
-newsArticleCollection = db["demo"]
+newsArticleCollection = db["mattjack_test"]
 
 
 # Getting Full Content from url from newsAPI
@@ -107,6 +107,7 @@ def categorizer_GPT(article_insert):
     
 # News Relevance with GPT
 def relevance_GPT(article_insert):
+    print('RELEVANCE GPT FUNCTION WORKING')
     try:
         #Defining Function + ChatGPT
         #Langchain implementation
@@ -158,7 +159,7 @@ def relevance_GPT(article_insert):
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return "General"  # Return 'General' category in case of error
+        return "Irrelevant"  # Return 'Irrelevant'' category in case of error
 
 
     # Getting Full Content from url from newsAPI
@@ -183,15 +184,18 @@ def newsRelevancy(article_content):
     if (gpt_Relevance == "Relevant"):
         countRelevance += 1
 
+    print(gpt_Relevance)
+
     #LLM 1
     bart_Relevance = newsRev_BART.bart_Function(article_content)
     if (bart_Relevance == "Relevant"):
         countRelevance += 1
 
+    print(bart_Relevance)
     #LLM 2
         
     #False to deem article not relevant
-    if countRelevance < 2:
+    if countRelevance < 0:
         return False
     else:
         return True
@@ -223,7 +227,7 @@ def articleScrapAndStore():
         count = 0
 
         for article in articles:
-            if count < 18:
+            if count < 1:
                 if article['url'].startswith('https://www.youtube.com/watch?'):
                     continue
 
@@ -244,7 +248,9 @@ def articleScrapAndStore():
 
                 #Filter out irrelevant article
                 if not newsRelevancy(content):
+                    print("Rejected insertion to Database")
                     continue
+
 
                 # News article content embedding 
                 try:
@@ -319,7 +325,9 @@ def urlScrapeAndStore(url):
         'embeddedContent': embeddedContent
         }
 
+    #To be adjusted to another function where we check if its relevant and store into MongoDB
     newsArticleCollection.insert_one(article_data)
+    ###
    
     output = {
         "Title": title,
@@ -329,7 +337,7 @@ def urlScrapeAndStore(url):
 
     return output
 
-# articleScrapAndStore()
+articleScrapAndStore()
 # for document in newsArticleCollection.find():
 #     print(document)
 

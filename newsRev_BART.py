@@ -5,7 +5,7 @@ import pandas as pd
 
 def bart_Function(article_content):
     # Read the CSV file into a DataFrame
-    df = pd.read_csv('news_r.csv')
+    #df = pd.read_csv('news_r.csv')
 
     #Pipeline defined and labels are defined
     classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
