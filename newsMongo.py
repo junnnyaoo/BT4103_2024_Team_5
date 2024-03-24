@@ -13,6 +13,7 @@ from pymongo import MongoClient
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 import newsRev_BART
+import newsRev_DeBERTa
 import os
 
 # Initial Setup
@@ -193,6 +194,9 @@ def newsRelevancy(article_content):
 
     print(bart_Relevance)
     #LLM 2
+    deberta_relevance = newsRev_DeBERTa.DeBERTa_Function(article_content)
+    if (deberta_relevance == "Relevant"):
+        countRelevance += 1
         
     #False to deem article not relevant
     if countRelevance < 0:
