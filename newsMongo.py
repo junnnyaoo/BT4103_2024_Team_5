@@ -12,6 +12,7 @@ from langchain_openai import OpenAIEmbeddings
 from pymongo import MongoClient
 from urllib.parse import urlparse
 from dotenv import load_dotenv
+import newsRev_BART
 import os
 
 # Initial Setup
@@ -104,6 +105,60 @@ def categorizer_GPT(article_insert):
         print(f"An error occurred: {e}")
         return "General"  # Return 'General' category in case of error
     
+# News Relevance with GPT
+def relevance_GPT(article_insert):
+    try:
+        #Defining Function + ChatGPT
+        #Langchain implementation
+        template = """ You are a bot that will be given an article and to deem if it is relevant to technology. 
+        Please answer with Relevant or Irrelevant 
+
+        Technology also includes the following:
+        
+        AI includes Discriminative AI, Machine Learning, Generative AI
+
+        Quantum Computing includes Quantum Internet, Quantum Communications, Quatum Computing
+
+        Green Computing includes Green Serverless Computing, Green Edge Applications, Green Data Streaming
+
+        Robotics
+
+        Trust Technologies includes Privacy Enhancing Technologies, Regulation Technologies, Al Governance Technologies
+
+        Anti-disinformation technologies includes Content Provenance Technologies, Anti-misinformation technologies, Detection of Generated Al content
+
+        Communications Technologies includes 5G, Networks, Seamless
+
+        In terms of the article information, classify them as Relevant or Irrelevant. 
+
+        Make sure that there are no spacing before the first word.
+
+
+        Human: {article}
+        Assistant:"""
+
+        prompt = PromptTemplate(
+            input_variables=["article"], 
+            template=template
+        )
+
+        chatgpt_chain = LLMChain(
+            llm = OpenAI(openai_api_key=api_key,model="gpt-3.5-turbo-instruct", temperature=0), 
+            prompt=prompt, 
+            verbose=False,  # Set verbose to False to suppress output
+            memory=ConversationBufferMemory(memory_key="history", input_key="article")
+        )
+        #Let ChatGPT to Categorise
+        output = chatgpt_chain.predict(article=article_insert) 
+
+        #To make sure that there are no spacing which ChatGPT outputs " Category_Name" -> "Category_Name"
+        output = output.strip()
+
+        return output
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return "General"  # Return 'General' category in case of error
 
 
     # Getting Full Content from url from newsAPI
@@ -118,6 +173,28 @@ def getFullContent(url):
     except HTTPError as e:
         print("HTTP Error:", e)
     return None
+
+
+# News Relevance Filter
+def newsRelevancy(article_content):
+    countRelevance = 0
+    
+    gpt_Relevance = relevance_GPT(article_content)
+    if (gpt_Relevance == "Relevant"):
+        countRelevance += 1
+
+    #LLM 1
+    bart_Relevance = newsRev_BART.bart_Function(article_content)
+    if (bart_Relevance == "Relevant"):
+        countRelevance += 1
+
+    #LLM 2
+        
+    #False to deem article not relevant
+    if countRelevance < 2:
+        return False
+    else:
+        return True
 
 
 ## Ignore
@@ -164,6 +241,10 @@ def articleScrapAndStore():
 
                 # Scrap the full content from the URL
                 content  = getFullContent(article['url'])
+
+                #Filter out irrelevant article
+                if not newsRelevancy(content):
+                    continue
 
                 # News article content embedding 
                 try:
