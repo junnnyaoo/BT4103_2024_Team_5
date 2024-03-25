@@ -25,7 +25,7 @@ def bart_Function(article_content):
     if article_content in irrelevant_categories:
         return "Irrelevant"
     else:
-        return "Revelant"
+        return "Relevant"
     
 
 
