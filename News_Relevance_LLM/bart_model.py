@@ -1,9 +1,11 @@
 from transformers import pipeline
 from datetime import datetime
 import pandas as pd
+import os
+
 
 # Read the CSV file into a DataFrame
-df = pd.read_csv('news_r.csv')
+df = pd.read_csv('news relevancy - api_data.csv')
 
 #Pipeline defined and labels are defined
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
