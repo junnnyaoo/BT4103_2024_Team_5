@@ -187,7 +187,7 @@ def articleScrapAndStore():
                     'url': url,
                     'date': date,
                     'content': content,
-                    'embedding': embeddedContent
+                    'embeddedContent': embeddedContent
                 }
                 newsArticleCollection.insert_one(article_data)
                 # collection.insert_one(article_data)
@@ -235,7 +235,7 @@ def urlScrapeAndStore(url):
         'url': url,
         'date': date,
         'content': content,
-        'embedding': embeddedContent
+        'embeddedContent': embeddedContent
         }
 
     newsArticleCollection.insert_one(article_data)
@@ -248,7 +248,7 @@ def urlScrapeAndStore(url):
 
     return output
 
-articleScrapAndStore()
+# articleScrapAndStore()
 # for document in newsArticleCollection.find():
 #     print(document)
 

@@ -240,6 +240,8 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
     if seconds + 15 >= 60:
         minutes += 1
         seconds = seconds - 60
+    
+    #schedule the last message as a reminder for user to reschedule again
     tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
     scheduled_time = datetime.time(now.hour, minutes, seconds + 15)
     schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
@@ -302,17 +304,16 @@ def update_message(ack, body, say):
 
     #Extracting schedule days
     days_interval = body["state"]["values"]["schedule_radiobuttons"]["radio_buttons-action"]["selected_option"]["value"]
-    # Extracting all values of selected_options
+    # Extracting all values of selected_options/categories
     selected_options = []
     selected_options.extend(option["value"] for option in body['state']['values']["category_checkboxes"]['checkboxes-action']['selected_options'])
     selected_options_string = ", ".join(selected_options)
 
     #if user click this again it means he/she wants schedule to reset
-    #get list of scheduled msgs
+    #get list of scheduled msgs to remove them 
     scheduled_list = client.chat_scheduledMessages_list()['scheduled_messages']
     scheduled_msg_id_list = []
     for msg in scheduled_list:
-        #append those that are in this channel
         if msg['channel_id'] == body['channel']['id']:
             scheduled_msg_id_list.append(msg['id'])
 
@@ -344,10 +345,11 @@ def update_message(ack, body, say):
     print(body)
 
     selected_options = []
+    #get the categories selected
     selected_options.extend(option["value"] for option in body['state']['values']["category_checkboxes"]['checkboxes-action']['selected_options'])
     selected_options_string = ", ".join(selected_options)
-
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Category selection received: " + selected_options_string)
+    #push to user and at the same time activate the function to retrieve the result 
     say("Here are the latest news filtered by selected category: " + selected_options_string)
 
 # action listener for category news
@@ -357,11 +359,12 @@ def update_message(ack, body, say):
     print(body)
     
     selected_options = []
+    #get the categories selected
     selected_options.extend(option["value"] for option in body['state']['values']["category_checkboxes"]['checkboxes-action']['selected_options'])
     selected_options_string = ", ".join(selected_options)
     client.chat_delete(channel = body['channel']['id'],ts = body['message']['ts'])
 
-
+    #push to user and at the same time activate the function to show date picker for date selection
     say(channel= body['channel']['id'],
             text = "Category selection received: " + selected_options_string,
             blocks= blocks.news_date_block,
@@ -372,20 +375,18 @@ import re
 @app.action("date_selected")
 def update_message(ack, body, say):
     ack()
-    print("\nHERE")
     print(body)
-    print(body['message']['text'])
+    #get the categories selected from date_select action
     split_string = body['message']['text'].split("Category selection received: ")[1]
-    # Split the categories
+    # Split the categories and store it into a list for processing
     selected_categories = split_string.split(", ")
     cleaned_selected_categories = []
     for item in selected_categories:
         cleaned_selected_categories.append(item.replace("&amp;", "&"))
     start_date = body['state']['values']['Start']['datepicker-action']['selected_date']
     end_date = body['state']['values']['End']['datepicker-action']['selected_date']
-
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Here are the news from " + start_date + " to " + end_date + " filtered by selected category: " + ", ".join(cleaned_selected_categories))
-    #note that start and end date needs to be provided the hh mm ss for comparison later on
+    #get result from db -> note that start and end date needs to be provided the hh mm ss for comparison later on
     say(readDb_Functions.getNews(collection, cleaned_selected_categories, [start_date + "T00:00:00",end_date  + "T23:59:59"]))
 
 # for all message handler for Slack
@@ -394,14 +395,11 @@ def messaage_handler(message, say, logger):
     print(message)
     print("\n")
     
-    #listener for scheduled msg "Here are the latest news:" 
-    #to fetch latest news on the scheduled day. 
+    #listener for scheduled msg "Here are the latest news:" to fetch latest news on the scheduled day. 
     #need to check if this is bot, only bot can post news
     if 'bot_id' in message.keys() and message['text'].startswith("Here are the latest news"):
-        # Split the string after "selected category:"
-        print(message['text'])
+        # Split the string after "selected category:" to get the categories
         split_string = message['text'].split("selected category: ")[1]
-        # Split the categories
         selected_categories = split_string.split(", ")
         cleaned_selected_categories = []
         for item in selected_categories:
@@ -409,9 +407,9 @@ def messaage_handler(message, say, logger):
         #read news from db
         say(readDb_Functions.getNews(collection, cleaned_selected_categories))
     
+    #if its not any features, use LLM to return result
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
         response = user_query(message['text'])
-
         say(response)
 
 #--------------------------------------------------------------------------------------------------------------------
