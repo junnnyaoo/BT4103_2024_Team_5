@@ -9,7 +9,8 @@ df = pd.read_csv('news relevancy - api_data.csv')
 
 #Pipeline defined and labels are defined
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-category_labels = ['AI', 'Quantum Computing', 'Green Computing', 'Robotics', 'Trust Technologies','Anti-disinformation technologies', 'Communications Technologies', 'General', 'Business', 'Finance']
+category_labels = ['AI', 'Quantum Computing', 'Green Computing', 'Robotics', 'Trust Technologies','Anti-disinformation technologies', 
+                   'Communications Technologies', 'General', 'Business', 'Finance']
 
 """
 start = datetime.now()
