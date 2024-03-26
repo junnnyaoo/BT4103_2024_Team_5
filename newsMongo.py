@@ -185,24 +185,30 @@ def newsRelevancy(article_content):
     if (gpt_Relevance == "Relevant"):
         countRelevance += 1
 
-    print(gpt_Relevance)
+    #print("GPT:")
+    #print(gpt_Relevance)
 
     #LLM 1
     bart_Relevance = newsRev_BART.bart_Function(article_content)
     if (bart_Relevance == "Relevant"):
         countRelevance += 1
-
-    print(bart_Relevance)
+    #print("BART:")
+    #print(bart_Relevance)
     #LLM 2
     deberta_relevance = newsRev_DeBERTa.DeBERTa_Function(article_content)
     if (deberta_relevance == "Relevant"):
         countRelevance += 1
+    #print("deBerta:")
+    #print(deberta_relevance)
         
     #False to deem article not relevant
-    if countRelevance < 0:
-        return False
-    else:
+    if countRelevance >= 2:
+        #print("Final: Relevant")
         return True
+    else:
+        #print("Final: Irrelevant")
+        return False
+
 
 
 ## Ignore
