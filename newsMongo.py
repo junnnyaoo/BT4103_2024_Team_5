@@ -21,11 +21,8 @@ load_dotenv()
 newsapi = NewsApiClient(os.getenv("NEWS_API_KEY"))
 api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
-db = mongo_client.get_database("matt_news_articles")
-# collection = db.get_collection("demo")
-# collection = db.get_collection("cloud_technology")
-newsArticleCollection = db["mattjack_test"]
-
+db = mongo_client.get_database("knowledge_db")
+newsArticleCollection = db["tech_articles"]
 
 # Getting Full Content from url from newsAPI
 def getFullContent(url):
@@ -108,7 +105,7 @@ def categorizer_GPT(article_insert):
     
 # News Relevance with GPT
 def relevance_GPT(article_insert):
-    print('RELEVANCE GPT FUNCTION WORKING')
+    #print('RELEVANCE GPT FUNCTION WORKING')
     try:
         #Defining Function + ChatGPT
         #Langchain implementation
@@ -186,27 +183,27 @@ def newsRelevancy(article_content):
         countRelevance += 1
 
     #print("GPT:")
-    #print(gpt_Relevance)
+    print(gpt_Relevance)
 
     #LLM 1
     bart_Relevance = newsRev_BART.bart_Function(article_content)
     if (bart_Relevance == "Relevant"):
         countRelevance += 1
     #print("BART:")
-    #print(bart_Relevance)
+    print(bart_Relevance)
     #LLM 2
     deberta_relevance = newsRev_DeBERTa.DeBERTa_Function(article_content)
     if (deberta_relevance == "Relevant"):
         countRelevance += 1
     #print("deBerta:")
-    #print(deberta_relevance)
+    print(deberta_relevance)
         
     #False to deem article not relevant
     if countRelevance >= 2:
-        #print("Final: Relevant")
+        print("Final: Relevant")
         return True
     else:
-        #print("Final: Irrelevant")
+        print("Final: Irrelevant")
         return False
 
 
@@ -225,11 +222,50 @@ def newsRelevancy(article_content):
 # newsCategory = categorizer_GPT(article.text)
 # print(newsCategory)
 
+def check_duplicate(article_embedding, collection):
+
+    #article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
+    #article_embedding = article_embeddings.embed_query(article)
+    pipeline = [
+        {
+            "$vectorSearch": { # $vectorSearch is the specific function name
+                "index": "vector_index", # The search index I created on MongoDB
+                "queryVector": article_embedding, # The embedded query from the user that is used for searching
+                "path": "embeddedContent", # The relevant field of the document that is used for searching (in this case the full text of the news article)
+                "limit": 15, # How many results you want the vectorSearch to show
+                "numCandidates": 100 # How many documents you want vectorSearch to consider when searching
+            }
+        }, 
+        {
+                '$project': {
+                '_id': 0, 
+                'plot': 1, 
+                'title': 1, 
+                'score': {
+                    '$meta': 'vectorSearchScore'
+                }
+            }
+        }
+    ]
+    
+    results = collection.aggregate(pipeline) # executing the search
+    #article_check_duplicate = "In another example, Yue asks the phone to find a gift for his grandma who cannot get out of bed. It generated an interface with several products within carousels, and each row had a brief explanation of why the product might be a good fit. He settled on the Kindle.\n\nYue then did a long-press on the product card to ask another query: \"What is the screen made of?\" The phone generated the answer as a paragraph of text below (notably with no sources), and when he then asked to watch unboxing videos, it added a row of YouTube videos on the topic.\n\nThis wizardry is reminiscent of Siri cofounder Dag Kittlaus' onstage demo of Viv way back in 2016, which was designed to be a conversational smart layer that let users interact with various services. His live demo also included asking by voice the digital assistant to book him a hotel room in Palm Springs. Clearly mighty impressed, Samsung snapped up Viv later that same year, and we've not really seen anything of it since.\n\nYou can get a pretty good glimpse of how Brain Technologies' tech works with its app, Natural AI, which it released in 2020. Yue says his company pioneered the large action models that can enable a digital AI assistant to execute tasks. Since the company had an early start, its AI can purportedly generate interfaces for more than 4 million functions it has trained since 2016. That should cover almost anything you can do on a computing device. “Instead of going to apps, apps come to you,” he says.\n\nBut Yue doesn’t think we’re moving away from apps just yet. That’s why this concept device is still an Android phone. If you don’t want to converse with the AI, you can access apps just like normal. The touchscreen isn’t going away either, and he believes this concept is the right combination of AI and a graphical interface.\n\nBrain Technologies has apparently already received tremendous interest from other manufacturers, and Yue says it's the only AI company the Emerson Collective (Laurene Powell Jobs' venture capital firm) has invested in. It seems almost inevitable that we'll see its generated interfaces in more kinds of devices in the future.\n\n“Everything is app-centric,” Yue says. “We’re trying to build a human-centric future. We’re trying to give people more power in this relationship. At the end of the day, whatever the next best interface is, wins.”\n\nSierra, a startup developing AI-powered agents to “elevate the customer experience” for big companies including WeightWatchers, Sonos, and SiriusXM, is of a similar view, stating that, in the future, a company’s AI version of itself will be just as, if not more, important as its app or website. “It's going to completely change the way companies exist digitally,” says Bret Taylor, who left his job as co-CEO of Salesforce to start Sierra.\n\nHuman After All\n\nThe founders of A Phone, A Friend—Tomas Ramanauskas and Tomas Dirvonskas—echoed the same sentiments on making phones more personal with the help of AI. “We think that AI gives an opportunity to humanize this relationship to actually make it more human instead of just this cold, transactional, attention economy kind of thing,” Ramanauskas says."
+    #result_check = check_duplicate(article_check_duplicate, newsArticleCollection)
+    for i in results:
+        if i['score'] > 0.98:
+            print(i)
+            return True  #True to being a duplicated article    
+    
+    return False
+
 
 
 def articleScrapAndStore():
     # tech_top_headlines = newsapi.get_top_headlines(language='en',category= 'technology',)
-    tech_news = newsapi.get_everything(language='en', q = 'AI OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies')
+    tech_news = newsapi.get_everything(language='en',
+                                        q = 'AI OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies',
+                                        from_param="2024-03-23",
+                                        to = '2024-03-24') #last scrapped 28th march 
     article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
 
     if tech_news['status'] == 'ok':
@@ -238,6 +274,7 @@ def articleScrapAndStore():
 
         for article in articles:
             if count < 1:
+                count += 1
                 if article['url'].startswith('https://www.youtube.com/watch?'):
                     continue
 
@@ -257,8 +294,13 @@ def articleScrapAndStore():
                 content  = getFullContent(article['url'])
 
                 #Filter out irrelevant article
-                if not newsRelevancy(content):
-                    print("Rejected insertion to Database")
+                try:
+                    if not newsRelevancy(content):
+                        print("Rejected insertion to Database")
+                        continue
+                #catch articles that cannot be scrap
+                except:
+                    print('Error in content / Going to next article')
                     continue
 
 
@@ -268,6 +310,15 @@ def articleScrapAndStore():
                 except:
                     continue
                 #prevent errors on sites that cannot be scrap
+
+                # Block Duplicated News
+                try:
+                    if check_duplicate(embeddedContent,newsArticleCollection):
+                        print("Duplicated News Detected. Rejected insertion.")
+                        continue
+                except:
+                    print("Error with content - Under Duplicated News. Rejected insertion.")
+                    continue
 
 
                 # Article published date converted to SGT
@@ -288,7 +339,7 @@ def articleScrapAndStore():
                 }
                 newsArticleCollection.insert_one(article_data)
                 # collection.insert_one(article_data)
-                count += 1    
+                #count += 1    
             else:
                 break
 
@@ -352,3 +403,7 @@ articleScrapAndStore()
 #     print(document)
 
 # urlScrapeAndStore("https://medium.com/@123carmartin321/the-quantum-leap-how-quantum-computing-is-solving-the-worlds-most-complex-problems-85ac8adb43d6")
+
+
+
+    

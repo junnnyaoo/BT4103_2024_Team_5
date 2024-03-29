@@ -24,7 +24,7 @@ def DeBERTa_Function(article_content):
     
     # List of categories to label as 1
     irrelevant_categories = ["Business","General","Finance"]
-    print(article_category)
+    #print(article_category)
     if article_category in irrelevant_categories:
         return "Irrelevant"
     else:
