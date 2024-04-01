@@ -36,7 +36,7 @@ template_2 = template_2
 # Initialize MongoDB
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 db = mongo_client.get_database("news_articles")
-collection = db.get_collection("newsArticleCollection")
+collection = db.get_collection("junyao_test")
 
 
 #Langchain implementation
@@ -221,13 +221,13 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
             schedule_news(now.hour, minutes, seconds, 0, channel_id, selected_options_string)
         count += 1
     
-    #     #-------------------FOR DEPLOY---------------------------
-    #     # schedule_news(9, 0, 0, next_schedule, body['channel'])
-    #     # if body['channel']['name'] == 'directmessage':
-    #     #     schedule_news(9, 0, 0, next_schedule, body['user']['id'], selected_options_string)
-    #     # else:
-    #     #     schedule_news(9, 0, 0, next_schedule, body['channel']['id'], selected_options_string)
-    #     next_schedule += days_interval
+        # #-------------------FOR DEPLOY---------------------------
+        # # schedule_news(9, 0, 0, next_schedule, body['channel'])
+        # # if body['channel']['name'] == 'directmessage':
+        # #     schedule_news(9, 0, 0, next_schedule, body['user']['id'], selected_options_string)
+        # # else:
+        # #     schedule_news(9, 0, 0, next_schedule, body['channel']['id'], selected_options_string)
+        # next_schedule += days_interval
         
     # print("\nBelow is list of scheduled after deleting all other schedules and scheduling new ones")
     # print(client.chat_scheduledMessages_list())  
