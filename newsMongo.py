@@ -10,8 +10,10 @@ from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain_openai import OpenAIEmbeddings
 from pymongo import MongoClient
+from nltk.tokenize import word_tokenize
 from urllib.parse import urlparse
 from dotenv import load_dotenv
+
 import os
 
 # Initial Setup
@@ -22,7 +24,7 @@ mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 db = mongo_client.get_database("news_articles")
 # collection = db.get_collection("demo")
 # collection = db.get_collection("cloud_technology")
-newsArticleCollection = db["demo"]
+newsArticleCollection = db["junyao_test"]
 
 
 # Getting Full Content from url from newsAPI
@@ -195,11 +197,21 @@ def articleScrapAndStore():
             else:
                 break
 
+def truncate_string_by_tokens(input_string):
+    # Tokenize the input string
+    tokens = word_tokenize(input_string)
 
+    # Check if the number of tokens exceeds the specified limit
+    if len(tokens) > 3800:
+        # Truncate the string by joining the first max_tokens tokens
+        truncated_string = ' '.join(tokens[:3800])
+        return truncated_string
+    else:
+        # Return the original string if it doesn't exceed the limit
+        return input_string
 
 def urlScrapeAndStore(url):
 
-    url = url[1:-1]
     article = Article(url)
     article.download()
     article.parse()
@@ -218,14 +230,19 @@ def urlScrapeAndStore(url):
     content  = article.text
 
     # News article content embedding 
+    
     article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
-    embeddedContent  = article_embeddings.embed_query(content)
+    truncated_content = truncate_string_by_tokens(content)
+    embeddedContent  = article_embeddings.embed_query(truncated_content)
 
     # Article published date converted to SGT
-    date = article.publish_date.strftime("%Y-%m-%dT%H:%M:%S SGT")
+    if article.publish_date:
+        date = article.publish_date.strftime("%Y-%m-%dT%H:%M:%S SGT")
+    else:
+        date = 'Unknown publish date'
 
     # News article sub-categorisation
-    newsCategory = categorizer_GPT(content)
+    newsCategory = categorizer_GPT(truncated_content)
 
     article_data = {
         'source': source, 
@@ -238,12 +255,13 @@ def urlScrapeAndStore(url):
         'embeddedContent': embeddedContent
         }
 
-    newsArticleCollection.insert_one(article_data)
+    # newsArticleCollection.insert_one(article_data)
    
     output = {
         "Title": title,
         "Link": url,
-        "Article": content
+        "Date": date,
+        "Article": truncated_content
     }
 
     return output
