@@ -25,13 +25,13 @@ api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 
 #--- Knowledge DB ----#
-#db = mongo_client.get_database("knowledge_db")
-#newsArticleCollection = db["tech_articles"]
+db = mongo_client.get_database("knowledge_db")
+newsArticleCollection = db["tech_articles"]
 ###
 
 #DB for testing
-db = mongo_client.get_database("news_articles")
-newsArticleCollection = db.get_collection("newsArticleCollection")
+#db = mongo_client.get_database("news_articles")
+#newsArticleCollection = db.get_collection("newsArticleCollection")
 
 # Getting Full Content from url from newsAPI
 def getFullContent(url):
@@ -261,9 +261,8 @@ def check_duplicate(article_embedding, collection):
     #article_check_duplicate = "In another example, Yue asks the phone to find a gift for his grandma who cannot get out of bed. It generated an interface with several products within carousels, and each row had a brief explanation of why the product might be a good fit. He settled on the Kindle.\n\nYue then did a long-press on the product card to ask another query: \"What is the screen made of?\" The phone generated the answer as a paragraph of text below (notably with no sources), and when he then asked to watch unboxing videos, it added a row of YouTube videos on the topic.\n\nThis wizardry is reminiscent of Siri cofounder Dag Kittlaus' onstage demo of Viv way back in 2016, which was designed to be a conversational smart layer that let users interact with various services. His live demo also included asking by voice the digital assistant to book him a hotel room in Palm Springs. Clearly mighty impressed, Samsung snapped up Viv later that same year, and we've not really seen anything of it since.\n\nYou can get a pretty good glimpse of how Brain Technologies' tech works with its app, Natural AI, which it released in 2020. Yue says his company pioneered the large action models that can enable a digital AI assistant to execute tasks. Since the company had an early start, its AI can purportedly generate interfaces for more than 4 million functions it has trained since 2016. That should cover almost anything you can do on a computing device. “Instead of going to apps, apps come to you,” he says.\n\nBut Yue doesn’t think we’re moving away from apps just yet. That’s why this concept device is still an Android phone. If you don’t want to converse with the AI, you can access apps just like normal. The touchscreen isn’t going away either, and he believes this concept is the right combination of AI and a graphical interface.\n\nBrain Technologies has apparently already received tremendous interest from other manufacturers, and Yue says it's the only AI company the Emerson Collective (Laurene Powell Jobs' venture capital firm) has invested in. It seems almost inevitable that we'll see its generated interfaces in more kinds of devices in the future.\n\n“Everything is app-centric,” Yue says. “We’re trying to build a human-centric future. We’re trying to give people more power in this relationship. At the end of the day, whatever the next best interface is, wins.”\n\nSierra, a startup developing AI-powered agents to “elevate the customer experience” for big companies including WeightWatchers, Sonos, and SiriusXM, is of a similar view, stating that, in the future, a company’s AI version of itself will be just as, if not more, important as its app or website. “It's going to completely change the way companies exist digitally,” says Bret Taylor, who left his job as co-CEO of Salesforce to start Sierra.\n\nHuman After All\n\nThe founders of A Phone, A Friend—Tomas Ramanauskas and Tomas Dirvonskas—echoed the same sentiments on making phones more personal with the help of AI. “We think that AI gives an opportunity to humanize this relationship to actually make it more human instead of just this cold, transactional, attention economy kind of thing,” Ramanauskas says."
     #result_check = check_duplicate(article_check_duplicate, newsArticleCollection)
     for i in results:
-        print(i)
+        
         if i['score'] > 0.96:
-            print(i)
             return True  #True to being a duplicated article    
     
     return False
@@ -411,7 +410,7 @@ def add_toDB_check(source,author,title,url,date,content):
 
 def urlScrapeAndStore(url):
     
-    url = url[1:-1]
+    #url = url[1:-1]
     article = Article(url)
     article.download()
     article.parse()
