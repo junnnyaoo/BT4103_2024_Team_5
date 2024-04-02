@@ -353,6 +353,62 @@ def articleScrapAndStore():
             else:
                 break
 
+
+def add_toDB_check(source,author,title,url,date,content):
+    article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
+    to_Addchecker = True
+
+    #Filter out irrelevant article
+    try:
+        if not newsRelevancy(content):
+            print("Rejected insertion to Database")
+            to_Addchecker = False
+    #catch articles that cannot be scrap
+    except:
+        print('Error in content')
+        to_Addchecker = False
+
+    # News article content embedding 
+    try:
+        embeddedContent  = article_embeddings.embed_query(content)
+    except:
+        print("Article Content Cannot Be Embedded")
+        to_Addchecker = False
+    #prevent errors on sites that cannot be scrap
+
+    # Block Duplicated News
+    try:
+        if check_duplicate(embeddedContent,newsArticleCollection):
+            print("Duplicated News Detected. Rejected insertion.")
+            to_Addchecker = False
+            
+    except:
+        print("Error with content - Under Duplicated News. Rejected insertion.")
+        to_Addchecker = False
+
+    if to_Addchecker:
+    # News article sub-categorisation
+        newsCategory = categorizer_GPT(content)
+
+        article_data = {
+            'source': source, 
+            'author': author,
+            'newsCategory': newsCategory,
+            'title': title,
+            'url': url,
+            'date': date,
+            'content': content,
+            'embeddedContent': embeddedContent
+            }
+
+        #To be adjusted to another function where we check if its relevant and store into MongoDB
+        newsArticleCollection.insert_one(article_data)
+        print("Added into Database")
+        ###
+    else:
+        print("Not added into Database")
+
+
 def truncate_string_by_tokens(input_string):
     # Tokenize the input string
     tokens = word_tokenize(input_string)
@@ -365,6 +421,7 @@ def truncate_string_by_tokens(input_string):
     else:
         # Return the original string if it doesn't exceed the limit
         return input_string
+
 
 def urlScrapeAndStore(url):
 
@@ -387,6 +444,7 @@ def urlScrapeAndStore(url):
     
     # Scrap the full content from the URL
     content  = article.text
+    
     truncated_content = truncate_string_by_tokens(content)
 
 
