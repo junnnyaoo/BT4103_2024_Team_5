@@ -12,6 +12,7 @@ from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain_openai import OpenAIEmbeddings
 from pymongo import MongoClient
+from nltk.tokenize import word_tokenize
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 import newsRev_BART
@@ -408,9 +409,22 @@ def add_toDB_check(source,author,title,url,date,content):
         print("Not added into Database")
 
 
+def truncate_string_by_tokens(input_string):
+    # Tokenize the input string
+    tokens = word_tokenize(input_string)
+
+    # Check if the number of tokens exceeds the specified limit
+    if len(tokens) > 3800:
+        # Truncate the string by joining the first max_tokens tokens
+        truncated_string = ' '.join(tokens[:3800])
+        return truncated_string
+    else:
+        # Return the original string if it doesn't exceed the limit
+        return input_string
+
+
 def urlScrapeAndStore(url):
-    
-    #url = url[1:-1]
+
     article = Article(url)
     article.download()
     article.parse()
@@ -430,14 +444,18 @@ def urlScrapeAndStore(url):
     
     # Scrap the full content from the URL
     content  = article.text
+    
+    truncated_content = truncate_string_by_tokens(content)
+
 
     # Article published date converted to SGT
-    try:
+    if article.publish_date:
         date = article.publish_date.strftime("%Y-%m-%dT%H:%M:%S SGT")
-    except:
-        date = "2024-03-30" 
+    else:
+        date = 'Unknown publish date'
+
     
-    t1 = threading.Thread(target=add_toDB_check,args=(source,author,title,url,date,content))
+    t1 = threading.Thread(target=add_toDB_check,args=(source,author,title,url,date,truncated_content))
 #t2 = threading.Thread(target=func_d,args=(10,))
     print('Thread Start')
     t1.start()
@@ -447,7 +465,8 @@ def urlScrapeAndStore(url):
     output = {
         "Title": title,
         "Link": url,
-        "Article": content
+        "Date": date,
+        "Article": truncated_content
     }
 
     return output
