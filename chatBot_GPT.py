@@ -169,15 +169,15 @@ def user_query(query):
         output = ''
         articles = []
         for x in url:
-            try:
+            #try:
                 article = urlScrapeAndStore(x)
                 articles.append(article)
                 output = chatgpt_chain2.predict(human_input = query, add_info=articles)
                 print(output)
 
-            except:
-                output = "There was a problem accessing one of the links. Please ensure that the link is working."
-                break
+            #except:
+                #output = "There was a problem accessing one of the links. Please ensure that the link is working."
+                #break
         return output
     else:
         get_knowledge = vector_search(query, collection) # Get the output from MongoDB after vector searching
