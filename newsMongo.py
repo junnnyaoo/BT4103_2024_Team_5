@@ -25,13 +25,13 @@ api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 
 #--- Knowledge DB ----#
-db = mongo_client.get_database("knowledge_db")
-newsArticleCollection = db["tech_articles"]
+#db = mongo_client.get_database("knowledge_db")
+#newsArticleCollection = db["tech_articles"]
 ###
 
 #DB for testing
-#db = mongo_client.get_database("news_articles")
-#newsArticleCollection = db.get_collection("newsArticleCollection")
+db = mongo_client.get_database("news_articles")
+newsArticleCollection = db.get_collection("newsArticleCollection")
 
 # Getting Full Content from url from newsAPI
 def getFullContent(url):
