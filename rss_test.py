@@ -1,5 +1,6 @@
 from pymongo import MongoClient
-from newsapi import NewsApiClient
+#from newsapi import NewsApiClient
+import requests
 from newspaper import Article
 from datetime import datetime
 import pytz
@@ -15,14 +16,17 @@ from dotenv import load_dotenv
 import newsRev_BART
 import newsRev_DeBERTa
 import os
-
+import feedparser
 # Initial Setup
 load_dotenv()
-newsapi = NewsApiClient(os.getenv("NEWS_API_KEY"))
+# currentsapi = CurrentsAPI(api_key= os.getenv("CURRENTS_API_KEY"))
+# tech_news = currentsapi.search(keywords='Artificial Intelligence OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies', language='en', limit=20)
+
+
 api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
-db = mongo_client.get_database("knowledge_db")
-newsArticleCollection = db["tech_articles"]
+db = mongo_client.get_database("matt_news_articles")
+newsArticleCollection = db["jack_test"]
 
 # Getting Full Content from url from newsAPI
 def getFullContent(url):
@@ -258,90 +262,212 @@ def check_duplicate(article_embedding, collection):
     
     return False
 
-
+import feedparser
 
 def articleScrapAndStore():
-    # tech_top_headlines = newsapi.get_top_headlines(language='en',category= 'technology',)
-    tech_news = newsapi.get_everything(language='en',
-                                        q = 'AI OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies',
-                                        from_param="2024-03-23",
-                                        to = '2024-03-24') #last scrapped 28th march 
-    article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
+    rss_feed_url = "https://techxplore.com/rss-feed/machine-learning-ai-news/"
+    feed = feedparser.parse(rss_feed_url)
 
-    if tech_news['status'] == 'ok':
-        articles = tech_news['articles']
-        count = 0
+    article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536)
 
-        for article in articles:
-            if count < 1:
-                count += 1
-                if article['url'].startswith('https://www.youtube.com/watch?'):
-                    continue
+    for entry in feed.entries:
+        # if 'link' not in entry or 'title' not in entry or 'summary' not in entry:
+        #     continue
 
-                # Extract Source 
-                source  = article['source']['name']
-
-                # Extract author
-                author = article['author']
-
-                # Extract title
-                title  = article['title']
-
-                # Extract url
-                url = article['url']
-
-                # Scrap the full content from the URL
-                content  = getFullContent(article['url'])
-
-                #Filter out irrelevant article
-                try:
-                    if not newsRelevancy(content):
-                        print("Rejected insertion to Database")
-                        continue
-                #catch articles that cannot be scrap
-                except:
-                    print('Error in content / Going to next article')
-                    continue
+        title = entry.title
+        url = entry.link
+        content  = getFullContent(url)
 
 
-                # News article content embedding 
-                try:
-                    embeddedContent  = article_embeddings.embed_query(content)
-                except:
-                    continue
-                #prevent errors on sites that cannot be scrap
+        # Scrap the full content from the URL (you need to implement getFullContent function)
+        # content = getFullContent(url)
 
-                # Block Duplicated News
-                try:
-                    if check_duplicate(embeddedContent,newsArticleCollection):
-                        print("Duplicated News Detected. Rejected insertion.")
-                        continue
-                except:
-                    print("Error with content - Under Duplicated News. Rejected insertion.")
-                    continue
+        # Filter out irrelevant articles
+        try:
+            if not newsRelevancy(content):
+                print("Rejected insertion to Database")
+                continue
+        except Exception as e:
+            print(f"Error in content / Going to next article: {str(e)}")
+            continue
+
+        # News article content embedding 
+        try:
+            embeddedContent = article_embeddings.embed_query(content)
+        except Exception as e:
+            print(f"Error embedding content: {str(e)}")
+            continue
+
+        # Block Duplicated News
+        try:
+            if check_duplicate(embeddedContent, newsArticleCollection):
+                print("Duplicated News Detected. Rejected insertion.")
+                continue
+        except Exception as e:
+            print(f"Error checking duplicate: {str(e)}")
+            continue
+
+        # Assuming TechXplore does not provide author and category information in the RSS feed
+        author = None
+        newsCategory = categorizer_GPT(content)
+
+        # Article published date converted to SGT
+        date = entry.published  # Assuming TechXplore provides published date in the standard format
+
+        article_data = {
+            'source': 'TechXplore',
+            'author': author,
+            'newsCategory': newsCategory,
+            'title': title,
+            'url': url,
+            'date': date,
+            'content': content,
+            'embeddedContent': embeddedContent
+        }
+        newsArticleCollection.insert_one(article_data)
+
+# def articleScrapAndStore():
+#     rss_feed_url = "https://techxplore.com/rss-feed/machine-learning-ai-news/"
+#     feed = feedparser.parse(rss_feed_url)
+
+#     article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536)
+
+#     for entry in feed.entries:
+#         title = entry.title
+#         url = entry.link
+#         content = entry.summary
+        
+#         # Scrap the full content from the URL (you need to implement getFullContent function)
+#         # content = getFullContent(url)
+
+#         # Filter out irrelevant articles
+#         try:
+#             if not newsRelevancy(content):
+#                 print("Rejected insertion to Database")
+#                 continue
+#         except Exception as e:
+#             print(f"Error in content / Going to next article: {str(e)}")
+#             continue
+
+#         # News article content embedding 
+#         try:
+#             embeddedContent = article_embeddings.embed_query(content)
+#         except Exception as e:
+#             print(f"Error embedding content: {str(e)}")
+#             continue
+
+#         # Block Duplicated News
+#         try:
+#             if check_duplicate(embeddedContent, newsArticleCollection):
+#                 print("Duplicated News Detected. Rejected insertion.")
+#                 continue
+#         except Exception as e:
+#             print(f"Error checking duplicate: {str(e)}")
+#             continue
+
+#         date = entry.published_parsed  # Assuming TechXplore provides published date in the standard format
+
+#         article_data = {
+#             'author': None,  # TechXplore RSS feed may not provide author information
+#             'newsCategory': None,  # You may need to categorize the news based on content
+#             'title': title,
+#             'url': url,
+#             'date': date,
+#             'content': content,
+#             'embeddedContent': embeddedContent
+#         }
+#         newsArticleCollection.insert_one(article_data)
 
 
-                # Article published date converted to SGT
-                date = getArticleDate(article['publishedAt'])
+# def articleScrapAndStore():
+#     # tech_top_headlines = newsapi.get_top_headlines(language='en',category= 'technology',)
+    
+#     tech_news = newsapi.get_everything(language='en',
+#                                         q = 'AI OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies',
+#                                         from_param="2024-03-23",
+#                                         to = '2024-03-24') #last scrapped 28th march 
 
-                # News article sub-categorisation
-                newsCategory = categorizer_GPT(content)
+#     # tech_news = currentsapi.search(keywords='Artificial Intelligence OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies', language='en', limit=20)
+#     # url = ('https://api.currentsapi.services/v1/search?'
+#     #     'keywords=Artificial Intelligence OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies&language=en&limit=20'
+#     #     'apiKey='+ currentsapi)
+#     # tech_news = requests.get(url).json()
+#     article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
 
-                article_data = {
-                    'source': source, #Only taking out the name
-                    'author': author,
-                    'newsCategory': newsCategory,
-                    'title': title,
-                    'url': url,
-                    'date': date,
-                    'content': content,
-                    'embeddedContent': embeddedContent
-                }
-                newsArticleCollection.insert_one(article_data)
-                # collection.insert_one(article_data)
-                #count += 1    
-            else:
-                break
+#     if tech_news['status'] == 'ok':
+#         articles = tech_news['news']
+#         count = 0
+
+#         for article in articles:
+#             if count < 1:
+#                 count += 1
+#                 if article['url'].startswith('https://www.youtube.com/watch?'):
+#                     continue
+
+#                 # Extract Source 
+#                 #source  = article['source']['name']
+
+#                 # Extract author
+#                 author = article['author']
+
+#                 # Extract title
+#                 title  = article['title']
+
+#                 # Extract url
+#                 url = article['url']
+
+#                 # Scrap the full content from the URL
+#                 content  = getFullContent(article['url'])
+
+#                 #Filter out irrelevant article
+#                 try:
+#                     if not newsRelevancy(content):
+#                         print("Rejected insertion to Database")
+#                         continue
+#                 #catch articles that cannot be scrap
+#                 except:
+#                     print('Error in content / Going to next article')
+#                     continue
+
+
+#                 # News article content embedding 
+#                 try:
+#                     embeddedContent  = article_embeddings.embed_query(content)
+#                 except:
+#                     continue
+#                 #prevent errors on sites that cannot be scrap
+
+#                 # Block Duplicated News
+#                 try:
+#                     if check_duplicate(embeddedContent,newsArticleCollection):
+#                         print("Duplicated News Detected. Rejected insertion.")
+#                         continue
+#                 except:
+#                     print("Error with content - Under Duplicated News. Rejected insertion.")
+#                     continue
+
+
+#                 # Article published date converted to SGT
+#                 date = getArticleDate(article['published'])
+
+#                 # News article sub-categorisation
+#                 newsCategory = categorizer_GPT(content)
+
+#                 article_data = {
+#                     #'source': source, #Only taking out the name
+#                     'author': author,
+#                     'newsCategory': newsCategory,
+#                     'title': title,
+#                     'url': url,
+#                     'date': date,
+#                     'content': content,
+#                     'embeddedContent': embeddedContent
+#                 }
+#                 newsArticleCollection.insert_one(article_data)
+#                 # collection.insert_one(article_data)
+#                 #count += 1    
+#             else:
+#                 break
 
 
 
@@ -399,11 +525,18 @@ def urlScrapeAndStore(url):
     return output
 
 articleScrapAndStore()
-# for document in newsArticleCollection.find():
-#     print(document)
+# # for document in newsArticleCollection.find():
+# #     print(document)
 
-# urlScrapeAndStore("https://medium.com/@123carmartin321/the-quantum-leap-how-quantum-computing-is-solving-the-worlds-most-complex-problems-85ac8adb43d6")
+# # urlScrapeAndStore("https://medium.com/@123carmartin321/the-quantum-leap-how-quantum-computing-is-solving-the-worlds-most-complex-problems-85ac8adb43d6")
 
+
+# import requests 
+# import os
+# currentsapi = os.getenv("CURRENTS_API_KEY")
+
+# url = ('https://api.currentsapi.services/v1/search?'
+#     'keywords=Artificial Intelligence&')
 
 
     
