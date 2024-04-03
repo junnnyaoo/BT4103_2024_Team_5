@@ -5,9 +5,10 @@ from prompt_template import template_2
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from langchain import OpenAI, ConversationChain, LLMChain, PromptTemplate
-# from langchain.chains import ConversationChain, ConversationSummaryBufferMemory
-from langchain.memory import ConversationBufferMemory
+from langchain.chat_models import ChatOpenAI
+from langchain.memory import ConversationBufferMemory, ConversationBufferWindowMemory
 from langchain_openai import OpenAIEmbeddings
+from langchain.agents import Tool, initialize_agent
 from pymongo import MongoClient
 import requests
 from bs4 import BeautifulSoup
@@ -36,157 +37,149 @@ template_2 = template_2
 # Initialize MongoDB
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 db = mongo_client.get_database("news_articles")
-collection = db.get_collection("junyao_test")
+collection = db.get_collection("newsArticleCollection")
 
 
-#Langchain implementation
-template1 = """ You are  a bot that will either provide news recommendations or answer questions related to the news asked by users.
-    You are speaking to a professional so keep the answer informative and concise.
-        
-    If asked for news recommendations based on certain keywords or topics, return the recommendations using the additional information provided in this format:
-    The ordering of the article recommendation should be based on the order of your previous output and not the order given by the additional information.
-
-    Title: <Title Name>
-    Website Link: <Link of Website>
-    Date of Article: <Get the latest date of publication>
-
-    If not, just answer the questions with the information you know.
-
-
-        Additional Information: {add_info}
-
-
-
-        Human: {human_input}
-        Assistant:"""
-
-template2 = """ You are a bot that will either provide news recommendations, news summaries or answer questions related to the news asked by users.
-    You are speaking to a professional so keep the answer informative and concise.
-
-    You are given an article(s) to summarize. Please respond with the following using information given. For the summary, summarize it using EXACTLY THREE LINES ONLY. If you can't do it, don't output.
-    Title: <Title Name>
-    Website Link: <Link of Website>
-    Date of Article: <Get the latest date of publication>
-    Names to note: <Names of Company and people mentioned within the article>
-    Key Topic: <Key topic of this article>
-    Sentiment: <conduct sentiment analysis and let them know the sentiment>
-    Trends & Statistics: <Include any trends and statistics found, make it short and do not repeat it in summary>
-    Summary: <The summarised version of the article in EXACTLY 3 lines> Please summarize using EXACTLY THREE lines. No more no less.
-
-        Additional Information: {add_info}
-
-        History: {history}
-        
-        Human: {human_input}
-        Assistant:
-"""
-prompt1 = PromptTemplate(
-    input_variables=["history", "human_input", "add_info"], 
-    template=template1
-)
-
-prompt2 = PromptTemplate(
-    input_variables=["history", "human_input", "add_info"], 
-    template=template2
-)
-
-chatgpt_chain1 = LLMChain(
-    llm = OpenAI(openai_api_key=api_key,model="gpt-3.5-turbo-instruct", temperature=0), 
-    prompt=prompt1, 
-    verbose=True, 
-    memory=ConversationBufferMemory(memory_key="history", input_key="human_input", k=2)
-)
-
-chatgpt_chain2 = LLMChain(
-    llm = OpenAI(openai_api_key=api_key,model="gpt-3.5-turbo-instruct", temperature=0), 
-    prompt=prompt2, 
-    verbose=True, 
-    memory=ConversationBufferMemory(memory_key="history", input_key="human_input", k=2)
-)
 
 
 article_embeddings = OpenAIEmbeddings(model="text-embedding-3-large", dimensions=1536) # model used to embed article
 query_embeddings = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=1536) # model used to embed user queries
 
-def vector_search(query, collection):
+
+def vector_search(query):
     query_embedding = query_embeddings.embed_query(query)
     pipeline = [
         {
             "$vectorSearch": { # $vectorSearch is the specific function name
                 "index": "vector_index", # The search index I created on MongoDB
                 "queryVector": query_embedding, # The embedded query from the user that is used for searching
-                "path": "embeddedContent", # The relevant field of the document that is used for searching (in this case the full text of the news article)
-                "limit": 5, # How many results you want the vectorSearch to show
+                "path": "embedding", # The relevant field of the document that is used for searching (in this case the full text of the news article)
+                "limit": 3, # How many results you want the vectorSearch to show
                 "numCandidates": 100 # How many documents you want vectorSearch to consider when searching
             }
         }
     ]
+    results = db['newsArticleCollection'].aggregate(pipeline) # executing the search
+    search_result = ''
+    for result in list(results):
+        search_result += f"Title: {result.get('title', 'N/A')}, URL: {result.get('url', 'N/A')}, Date: {result.get('date', 'N/A')}, Content: {result.get('content', 'N/A')}"
+    return search_result
+
+def url(query):
+
+    if query.startswith("<https:") or query.startswith("<http:") or query.startswith("<www."):
+        query=query[1:-1]
     
-    results = collection.aggregate(pipeline) # executing the search
-    return list(results) # compile results into a list
-
-
-# def scrape_and_store(url):
-#     url = url[1:-1]
-#     article = Article(url)
-#     article.download()
-#     article.parse()
-#     title = article.title
-#     content = article.text
-#     embeddings = article_embeddings.embed_query(content)
-#     article_json = {
-#         'title': title,
-#         'link': url,
-#         'data': embeddings,
-#         'article': content,
-#         # date how ah?        
-#     }
-
-#     collection.insert_one(article_json)
-   
-#     output = {
-#         "Title": title,
-#         "Link": url,
-#         "Article": content
-#     }
-
-#     return output
-
-
-def find_url(text):
-    x = text.split()
-    url = []
-    for word in x:
-        if word.startswith("<https:") or word.startswith("<http:") or word.startswith("<www."):
-            url.append(word)
-    return url
-
-def user_query(query):
-    url = find_url(query)
-    print(url)
+    output = ''
+    articles = []
+  
+    try:
+        article = urlScrapeAndStore(query)
+        articles.append(article)
+        output = articles
+    except:
+        output = "There was a problem accessing one of the links. Please ensure that the link is working."
     
-    if url: # if array not empty
-        output = ''
-        articles = []
-        for x in url:
-            try:
-                article = urlScrapeAndStore(x)
-                articles.append(article)
-                output = chatgpt_chain2.predict(human_input = query, add_info=articles)
-                print(output)
+    return output
 
-            except:
-                output = "There was a problem accessing one of the links. Please ensure that the link is working."
-                break
-        return output
-    else:
-        get_knowledge = vector_search(query, collection) # Get the output from MongoDB after vector searching
+llm = ChatOpenAI(api_key=api_key, model='gpt-4-0125-preview', temperature=0, verbose=True)
+memory = ConversationBufferWindowMemory(memory_key='chat_history',k = 5, return_messages=True)
 
-        search_result = ''
-        for result in get_knowledge:
-            search_result += f"Title: {result.get('title', 'N/A')}, Link: {result.get('url', 'N/A')}"
-        output = chatgpt_chain1.predict(human_input = query, add_info = search_result)  
-        return output
+tools = [Tool(
+    name = 'QnA',
+    func = vector_search,
+    description = """
+        For any news related questions, use this tool and the information generated to answer.
+        When user ask to retrieve news such as "give me news" or "recommend me news", output the observation output as this format:
+ 
+            Title: <Title Name>
+            Website Link: <Link of Website>
+            Date of Article: <Get the latest date of publication>
+            Summary: <Give an insightful summary of the article in six to eight lines.>
+    """
+),
+Tool(
+    name = 'URL',
+    func = url,
+    description = """
+        Use this tool if user sends an URL in the query. Access the URL and give an insightful summary of the news article from the URL. 
+        Use the information generated from the URL given to help you form your summary. The summary should be substantial with at least six to eight lines.
+    """
+)
+]
+
+agent = initialize_agent(
+    agent = 'conversational-react-description',
+    tools=tools,
+    llm=llm,
+    verbose=True,
+    max_iterations=2,
+    early_stopping_method='generate', 
+    memory=memory,
+    # return_intermediate_steps=True
+    # agent_kwargs={
+    #     'prefix': template
+    # }
+)
+
+agent.agent.llm_chain.prompt.template = """ 
+
+The Langchain LLM-powered assistant is designed to proficiently handle diverse tasks, such as recommending news and 
+addressing queries related to technology and its updates. It's trained to generate human-like responses, ensuring natural 
+conversations and relevant insights. Continuously learning and advancing, this assistant comprehends vast amounts of text to
+deliver accurate information and engage in meaningful discussions. With its evolving capabilities, it's adept at providing assistance 
+across various domains, making it a valuable resource for obtaining insights and engaging in informative conversations. Whether you seek 
+specific answers or wish to delve into a topic, the assistant is primed to assist effectively.
+
+
+TOOLS:
+------
+
+Assistant has access to the following tools:
+
+> QnA: 
+        For all questions, ALWAYS use this tool and the information with LLM to generate answer.
+    
+> URL:
+        Use this tool if user sends an URL in the query. Access the URL and give an insightful summary of the news article from the URL. 
+        Use the information generated from the URL given to help you form your summary. The summary should be substantial with at least six to eight lines.
+
+To use a tool, please use the following format:
+
+```
+Thought: Do I need to use a tool? Yes
+Action: the action to take, must be either QnA or Date period 
+Action Input: the input to the action (do not change content of new input)
+Observation: the result of the action
+
+```
+
+When you have a response to say to the Human, or if you do not need to use a tool, you MUST use the format:
+
+```
+Thought: Do I need to use a tool? No
+AI: [your response here]
+
+```
+
+Output note:
+
+        When human ask for news article, ALWAYS do this:
+        Using the observation result, output the 4 items in this format:
+            Title: <Title Name>
+            Website Link: <Link of Website>
+            Date of Article: <Get the latest date of publication>
+            Summary: <Give an insightful summary of the article in six to eight lines.>
+        
+        Output 3 articles if user did not specify the number of articles to be shown
+Begin!
+
+Previous conversation history:
+{chat_history}
+
+New input: {input}
+{agent_scratchpad}
+"""
 
 #--------------------------------------------------------------------------------------------------------------------
 #               SCHEDULE MESSAGE Slack API 
@@ -399,8 +392,9 @@ def messaage_handler(message, say, logger):
     
     #if its not any features, use LLM to return result
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
-        response = user_query(message['text'])
-        say(response)
+        response = agent(message['text'])
+
+        say(response["output"])
 
 #--------------------------------------------------------------------------------------------------------------------
 #               Slackbot startup
