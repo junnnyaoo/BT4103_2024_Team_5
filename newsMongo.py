@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 from newsapi import NewsApiClient
 from newspaper import Article
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import threading
 import pytz
@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 import newsRev_BART
 import newsRev_DeBERTa
 import os
+import feedparser
 
 # Initial Setup
 load_dotenv()
@@ -25,13 +26,13 @@ api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 
 #--- Knowledge DB ----#
-#db = mongo_client.get_database("knowledge_db")
-#newsArticleCollection = db["tech_articles"]
+db = mongo_client.get_database("knowledge_db")
+newsArticleCollection = db["tech_articles"]
 ###
 
-#DB for testing
-db = mongo_client.get_database("news_articles")
-newsArticleCollection = db.get_collection("newsArticleCollection")
+# #DB for testing
+# db = mongo_client.get_database("news_articles")
+# newsArticleCollection = db.get_collection("newsArticleCollection")
 
 # Getting Full Content from url from newsAPI
 def getFullContent(url):
@@ -353,6 +354,90 @@ def articleScrapAndStore():
             else:
                 break
 
+def TX_RSS_ScrapAndStore():
+    rss_feed_urls = [
+        "https://techxplore.com/rss-feed/machine-learning-ai-news/",
+        "https://techxplore.com/rss-feed/breaking/",
+        "https://techxplore.com/rss-feed/energy-green-tech-news/",
+        "https://techxplore.com/rss-feed/robotics-news/",
+        "https://techxplore.com/rss-feed/telecom-news/",
+
+    ]
+
+    article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536)
+
+    for rss_feed_url in rss_feed_urls:
+        feed = feedparser.parse(rss_feed_url)
+
+        for entry in feed.entries:
+            # if 'link' not in entry or 'title' not in entry or 'summary' not in entry:
+            #     continue
+
+            title = entry.title
+            url = entry.link
+            content  = getFullContent(url)
+
+            # Filter out irrelevant articles
+            try:
+                if not newsRelevancy(content):
+                    print("Rejected insertion to Database")
+                    continue
+            except Exception as e:
+                print(f"Error in content / Going to next article: {str(e)}")
+                continue
+
+            # News article content embedding 
+            try:
+                embeddedContent = article_embeddings.embed_query(content)
+            except Exception as e:
+                print(f"Error embedding content: {str(e)}")
+                continue
+
+            # Block Duplicated News
+            try:
+                if check_duplicate(embeddedContent, newsArticleCollection):
+                    print("Duplicated News Detected. Rejected insertion.")
+                    continue
+            except Exception as e:
+                print(f"Error checking duplicate: {str(e)}")
+                continue
+
+            # Additional fields from the RSS feed
+            article = Article(url)
+            article.download()
+            article.parse()
+            
+            author = ','.join(article.authors)  # Assuming TechXplore does not provide this info
+            newsCategory = categorizer_GPT(content)
+
+            # Article published date converted to SGT
+            #date = entry.published  # Assuming TechXplore provides published date in the standard format
+            date_format = "%a, %d %b %Y %H:%M:%S"
+            parsed_date = datetime.strptime(entry.published[:-4], date_format) + timedelta(hours=4)
+
+            # Since EDT is UTC-4, we adjust for that first before converting to SGT
+            sgt = pytz.timezone('Asia/Singapore')  # Singapore Time Zone
+            sgt_date = parsed_date.replace(tzinfo=pytz.utc).astimezone(sgt)
+
+            # # Localize to EDT and then convert to SGT
+            # localized_date = edt.localize(parsed_date)
+            # converted_date = localized_date.astimezone(sgt)
+
+            # Format the date in the desired format
+            date = sgt_date.strftime("%Y-%m-%dT%H:%M:%S SGT")
+
+            article_data = {
+                'source': 'TechXplore',
+                'author': author,
+                'newsCategory': newsCategory,
+                'title': title,
+                'url': url,
+                'date': date,
+                'content': content,
+                'embeddedContent': embeddedContent
+            }
+            newsArticleCollection.insert_one(article_data)
+
 
 def add_toDB_check(source,author,title,url,date,content):
     article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
@@ -453,4 +538,5 @@ def urlScrapeAndStore(url):
 
     return output
 
-#articleScrapAndStore()
+articleScrapAndStore()
+TX_RSS_ScrapAndStore()
