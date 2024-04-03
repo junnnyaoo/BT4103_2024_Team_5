@@ -1,18 +1,13 @@
 import os
 from dotenv import load_dotenv
-import prompt_template
 from prompt_template import template_2
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-from langchain import OpenAI, ConversationChain, LLMChain, PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory, ConversationBufferWindowMemory
 from langchain_openai import OpenAIEmbeddings
 from langchain.agents import Tool, initialize_agent
 from pymongo import MongoClient
-import requests
-from bs4 import BeautifulSoup
-from newspaper import Article
 import datetime
 #import blocks from our blocks python file
 import blocks
@@ -22,7 +17,8 @@ import logging
 from newsMongo import urlScrapeAndStore
 # Import WebClient from Python SDK (github.com/slackapi/python-slack-sdk)
 from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
+import datefinder
+from datetime import datetime
 
 #--------------------------------------------------------------------------------------------------------------------
 #               Slackbot init
@@ -38,13 +34,8 @@ template_2 = template_2
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 db = mongo_client.get_database("news_articles")
 collection = db.get_collection("newsArticleCollection")
-
-
-
-
 article_embeddings = OpenAIEmbeddings(model="text-embedding-3-large", dimensions=1536) # model used to embed article
 query_embeddings = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=1536) # model used to embed user queries
-
 
 def vector_search(query):
     query_embedding = query_embeddings.embed_query(query)
@@ -66,7 +57,6 @@ def vector_search(query):
     return search_result
 
 def url(query):
-
     if query.startswith("<https:") or query.startswith("<http:") or query.startswith("<www."):
         query=query[1:-1]
     
@@ -85,6 +75,50 @@ def url(query):
 llm = ChatOpenAI(api_key=api_key, model='gpt-4-0125-preview', temperature=0, verbose=True)
 memory = ConversationBufferWindowMemory(memory_key='chat_history',k = 5, return_messages=True)
 
+categories = ["All", "General", "AI", "Quantum Computing", "Green Computing", "Robotics", "Trust Technologies", "Anti-disinformation technologies", "Communications Technologies"]
+
+def extract_dates(query):
+
+    formatted_dates = []
+    
+    #special cases that may cause error
+    if " - " in query:
+        query = query.replace(" - ", " to ")
+    if " until " in query:
+        query = query.replace(" until ", " to ")
+
+    matches = list(datefinder.find_dates(query))
+
+    for date in matches:
+        formatted_dates.append(date.strftime("%Y-%m-%dT%H:%M:%S"))
+
+    if len(formatted_dates) == 1:
+        formatted_dates = [formatted_dates[0],formatted_dates[0]]
+
+    if len(formatted_dates) != 0:
+        formatted_dates[1] = datetime.strptime(formatted_dates[1], "%Y-%m-%dT%H:%M:%S").replace(hour=23, minute=59, second=59).strftime("%Y-%m-%dT%H:%M:%S")
+
+    return formatted_dates
+
+def get_date_categories_specific_articles(query):
+    
+    dates = extract_dates(query)
+    if len(dates) > 2:
+        return "Please ask user to give only 2 dates, the start and from dates. Also tell them to give it in YYYY-MM-DD, or MM/DD/YY format example: 3/24/24 to 4/20/24 "
+    
+    selected_categories = []
+    for cat in categories:
+        if cat.lower() in query.lower():
+            selected_categories.append(cat)
+    if len(selected_categories) == 0:
+        selected_categories = ['All']
+    #if selected categories is 'All' and dates = [] means agent uses wrong tool (which may happen sometime) this is an edge case, which returns the following to let
+    #agent know
+    if selected_categories == ['All'] and len(dates) == 0:
+        return "Please use QnA Tool"
+    
+    return readDb_Functions.getNews(collection, selected_categories, dates)
+
 tools = [Tool(
     name = 'QnA',
     func = vector_search,
@@ -97,15 +131,29 @@ tools = [Tool(
             Date of Article: <Get the latest date of publication>
             Summary: <Give an insightful summary of the article in six to eight lines.>
     """
-),
-Tool(
-    name = 'URL',
-    func = url,
-    description = """
-        Use this tool if user sends an URL in the query. Access the URL and give an insightful summary of the news article from the URL. 
-        Use the information generated from the URL given to help you form your summary. The summary should be substantial with at least six to eight lines.
-    """
-)
+    ),
+    Tool(
+        name = 'URL',
+        func = url,
+        description = """
+            Use this tool if user sends an URL in the query. Access the URL and give an insightful summary of the news article from the URL. 
+            Use the information generated from the URL given to help you form your summary. The summary should be substantial with at least six to eight lines.
+        """
+    ),
+    Tool(
+        name='Date period and Categories',
+        func=get_date_categories_specific_articles,
+        description=(
+            """
+            Use this tool when user indicates a desire for news articles from a specific category and/or a specific date period.
+            Such as "give me news for Green Computing on 13 May 2024" or "any news on Robotics" or "Share some articles from 13 May 2024 to 14 May 2024"
+            Specific categories includes: "General", "AI", "Quantum Computing", "Green Computing", "Robotics", "Trust Technologies", "Anti-disinformation technologies", "Communications Technologies"
+            Do not use this tool if the specific categories are not mentioned.
+            Do not use this tool if user ask question about these categories such as "What is Green Computing?" because they are not asking for news articles
+            When two dates are given, input the action as date1 'to' date2.
+            """
+        )
+    ),
 ]
 
 agent = initialize_agent(
@@ -144,16 +192,23 @@ Assistant has access to the following tools:
         Use this tool if user sends an URL in the query. Access the URL and give an insightful summary of the news article from the URL. 
         Use the information generated from the URL given to help you form your summary. The summary should be substantial with at least six to eight lines.
 
+> Date period and Categories: 
+        Use this tool when user indicates a desire for news articles from a specific category and/or a specific date period.
+        Such as "give me news for Green Computing on 13 May 2024" or "any news on Robotics" or "Share some articles from 13 May 2024 to 14 May 2024"
+        Specific categories includes: "General", "AI", "Quantum Computing", "  Computing", "Robotics", "Trust Technologies", "Anti-disinformation technologies", "Communications Technologies"
+        Do not use these tools if the specific categories are not mentioned.
+        When two dates are given, input the action as date1 'to' date2.
+
 To use a tool, please use the following format:
 
 ```
 Thought: Do I need to use a tool? Yes
-Action: the action to take, must be either QnA or Date period 
+Action: the action to take, must be either 'QnA' or 'URL' or 'Date period and Categories'
 Action Input: the input to the action (do not change content of new input)
 Observation: the result of the action
 
 ```
-
+Use QnA Tool for all questions unless,
 When you have a response to say to the Human, or if you do not need to use a tool, you MUST use the format:
 
 ```
@@ -165,13 +220,18 @@ AI: [your response here]
 Output note:
 
         When human ask for news article, ALWAYS do this:
-        Using the observation result, output the 4 items in this format:
+        Using the observation result, output the 5 items in this format:
+            Article #n
             Title: <Title Name>
             Website Link: <Link of Website>
             Date of Article: <Get the latest date of publication>
-            Summary: <Give an insightful summary of the article in six to eight lines.>
+            Summary: <Give an insightful summary of the article in six to eight lines. Include names to note, sentiment analysis, trends & statistics and key topic if available>
         
         Output 3 articles if user did not specify the number of articles to be shown
+
+If there is not enough data, just output what you have.
+Do not change human input to action input
+
 Begin!
 
 Previous conversation history:
@@ -189,23 +249,9 @@ New input: {input}
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
-print("\n##############################################################################################################")
-print(client.chat_scheduledMessages_list())
-print("##############################################################################################################\n")
-
-#smaller helper version of handling schedule: handle each schedule of news request to slack api
-# def schedule_news(hour, minute, second, next_days, id, selected_options_string):
-#     tomorrow = datetime.date.today() + datetime.timedelta(days = next_days)
-#     scheduled_time = datetime.time(hour, minute, second)
-#     schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
-#     try:
-#         client.chat_scheduleMessage(
-#             channel=id,
-#             text= "Here are the latest news filtered by selected category: " + selected_options_string,
-#             post_at=schedule_timestamp
-#         )
-#     except SlackApiError as e:
-#         logger.error("Error scheduling message: {}".format(e))
+# print("\n##############################################################################################################")
+# print(client.chat_scheduledMessages_list())
+# print("##############################################################################################################\n")
 
 #handling the schedule of news up to 120 days and days interval as selected
 def handle_schedule(channel_id, channel_name, days_interval, selected_options_string):
@@ -353,7 +399,6 @@ def update_message(ack, body, say):
             blocks= blocks.news_date_block,
             as_user =True)
     
-import re
 # action listener for category news
 @app.action("date_selected")
 def update_message(ack, body, say):
@@ -379,7 +424,7 @@ def messaage_handler(message, say, logger):
     print("\n")
     
     #listener for scheduled msg "Here are the latest news:" to fetch latest news on the scheduled day. 
-    #need to check if this is bot, only bot can post news
+    #only bot can post news
     if 'bot_id' in message.keys() and message['text'].startswith("Here are the latest news"):
         # Split the string after "selected category:" to get the categories
         split_string = message['text'].split("selected category: ")[1]
@@ -390,7 +435,7 @@ def messaage_handler(message, say, logger):
         #read news from db
         say(readDb_Functions.getNews(collection, cleaned_selected_categories))
     
-    #if its not any features, use LLM to return result
+    #if its not any features, use agent to return result
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
         response = agent(message['text'])
 
