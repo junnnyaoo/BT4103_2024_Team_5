@@ -196,81 +196,75 @@ def user_query(query):
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
+print("\n##############################################################################################################")
+print(client.chat_scheduledMessages_list())
+print("##############################################################################################################\n")
+
+#smaller helper version of handling schedule: handle each schedule of news request to slack api
+# def schedule_news(hour, minute, second, next_days, id, selected_options_string):
+#     tomorrow = datetime.date.today() + datetime.timedelta(days = next_days)
+#     scheduled_time = datetime.time(hour, minute, second)
+#     schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
+#     try:
+#         client.chat_scheduleMessage(
+#             channel=id,
+#             text= "Here are the latest news filtered by selected category: " + selected_options_string,
+#             post_at=schedule_timestamp
+#         )
+#     except SlackApiError as e:
+#         logger.error("Error scheduling message: {}".format(e))
+
 #handling the schedule of news up to 120 days and days interval as selected
 def handle_schedule(channel_id, channel_name, days_interval, selected_options_string):
 
-    #-------------------FOR TESTING---------------------------
-    #25sec later post msg for testing
-    now = datetime.datetime.now()
-    seconds, minutes = now.second + 20, now.minute
-    count, next_schedule, days_interval = 0, 0, int(days_interval)
+    count, next_schedule, days_interval = 0, int(days_interval), int(days_interval)
 
-    # max no. of schedule slack api allows is 120days
     while next_schedule < 120:
-        #-------------------FOR TESTING---------------------------
-        #code will show 25 second later
-        #wont work if your time now is close to the next hour
-        if seconds >= 60:
-            minutes += 1
-            seconds = seconds - 60
-        if count == 1:
-            break
-        if channel_name == 'directmessage':
-            schedule_news(now.hour, minutes, seconds, 0, channel_id, selected_options_string)
-        else:
-            schedule_news(now.hour, minutes, seconds, 0, channel_id, selected_options_string)
-        count += 1
-    
-        # #-------------------FOR DEPLOY---------------------------
-        # # schedule_news(9, 0, 0, next_schedule, body['channel'])
-        # # if body['channel']['name'] == 'directmessage':
-        # #     schedule_news(9, 0, 0, next_schedule, body['user']['id'], selected_options_string)
-        # # else:
-        # #     schedule_news(9, 0, 0, next_schedule, body['channel']['id'], selected_options_string)
-        # next_schedule += days_interval
-        
-    # print("\nBelow is list of scheduled after deleting all other schedules and scheduling new ones")
-    # print(client.chat_scheduledMessages_list())  
-        
-    #need to change time to 9am for deployment
-    #this is for scheduling a prompt to 
-    #ask user to choose schedule again
-    #due to 120 days limit
-    #for testing, to show schedule message expiry
-    if seconds + 15 >= 60:
-        minutes += 1
-        seconds = seconds - 60
-    
-    #schedule the last message as a reminder for user to reschedule again
-    tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
-    scheduled_time = datetime.time(now.hour, minutes, seconds + 15)
-    schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
-    client.chat_scheduleMessage(
-        channel=channel_id,
-        text= "Your schedule has expired, please select a new schedule.",
-        post_at=schedule_timestamp
-    )
-
-#handle each schedule of news request to slack api
-def schedule_news(hour, minute, second, next_days, id, selected_options_string):
-    #Create a schedule using datetime library
-    tomorrow = datetime.date.today() + datetime.timedelta(days = next_days)
-    scheduled_time = datetime.time(hour, minute, second)
-    schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
-    try:
-        # Call the chat.scheduleMessage method using the WebClient
-        result = client.chat_scheduleMessage(
-            channel=id,
-            #here will be the relevent news update
+        #-------------------BELOW FOR DEMO TESTING---------------------------
+        #schedule 25 second later
+        if count < 1:
+            now = datetime.datetime.now()
+            seconds, minutes = now.second + 20, now.minute
+            if seconds >= 60:
+                minutes += 1
+                seconds = seconds - 60
+            tomorrow = datetime.date.today() + datetime.timedelta(days = 0)
+            scheduled_time = datetime.time(now.hour, minutes, seconds)
+            schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
+            client.chat_scheduleMessage(
+                channel=channel_id,
+                text= "Here are the latest news filtered by selected category: " + selected_options_string,
+                post_at=schedule_timestamp
+            )
+        #-------------------ABOVE FOR DEMO TESTING---------------------------
+            
+        tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
+        scheduled_time = datetime.time(9, 0, 0)
+        schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
+        client.chat_scheduleMessage(
+            channel=channel_id,
             text= "Here are the latest news filtered by selected category: " + selected_options_string,
             post_at=schedule_timestamp
         )
-        # Log the result
-        # print("\nBelow is schedule msg result")
-        # logger.info(result)
-        # print(result)
-    except SlackApiError as e:
-        logger.error("Error scheduling message: {}".format(e))
+        next_schedule += days_interval
+
+        #schedule the last message as a reminder for user to reschedule again
+        if next_schedule >= 120:
+            tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
+            scheduled_time = datetime.time(9, 1, 0)
+            schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
+            client.chat_scheduleMessage(
+                channel=channel_id,
+                text= "Your schedule has expired, please select a new schedule.",
+                post_at=schedule_timestamp
+            )
+
+        #for testing
+        count += 1
+    print("\n##############################################################################################################")
+    print(client.chat_scheduledMessages_list())
+    print("##############################################################################################################\n")
+
 
 #--------------------------------------------------------------------------------------------------------------------
 #               Slackbot listener
@@ -304,37 +298,33 @@ def update_message(ack, body, say):
 
     #Extracting schedule days
     days_interval = body["state"]["values"]["schedule_radiobuttons"]["radio_buttons-action"]["selected_option"]["value"]
+
     # Extracting all values of selected_options/categories
     selected_options = []
     selected_options.extend(option["value"] for option in body['state']['values']["category_checkboxes"]['checkboxes-action']['selected_options'])
     selected_options_string = ", ".join(selected_options)
 
     #if user click this again it means he/she wants schedule to reset
-    #get list of scheduled msgs to remove them 
+    #get list of scheduled msgs to remove them
     scheduled_list = client.chat_scheduledMessages_list()['scheduled_messages']
+    
+    #update slack message
+    if len(scheduled_list) == 0:
+        text = "We have received your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + selected_options_string
+    else:
+        text = "We have rescheduled your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + selected_options_string
+    client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = text)
+    
+    #----------------- Perform scheduling -----------------
     scheduled_msg_id_list = []
     for msg in scheduled_list:
         if msg['channel_id'] == body['channel']['id']:
             scheduled_msg_id_list.append(msg['id'])
-
-    # print("\nBelow is list of scheduled bef delete")
-    # print(client.chat_scheduledMessages_list())
-    # print("\nBelow is list of scheduled msg id list")
-    # print(scheduled_msg_id_list)
         
     # delete those msgs scheduled in this channel
     for msg_id in scheduled_msg_id_list:
         client.chat_deleteScheduledMessage(channel=body['channel']['id'],scheduled_message_id=msg_id)
 
-    # print("\nBelow is list of scheduled after delete")
-    # print(client.chat_scheduledMessages_list())
-    
-    if len(scheduled_msg_id_list) == 0:
-        text = "We have received your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + selected_options_string
-    else:
-        text = "We have rescheduled your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + selected_options_string
-    
-    client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = text)
     #schedule the messages
     handle_schedule(body['channel']['id'], body['channel']['name'], days_interval, selected_options_string)
 
