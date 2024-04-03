@@ -26,13 +26,13 @@ api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 
 #--- Knowledge DB ----#
-#db = mongo_client.get_database("knowledge_db")
-#newsArticleCollection = db["tech_articles"]
+db = mongo_client.get_database("knowledge_db")
+newsArticleCollection = db["tech_articles"]
 ###
 
 #DB for testing
-db = mongo_client.get_database("news_articles")
-newsArticleCollection = db.get_collection("newsArticleCollection")
+#db = mongo_client.get_database("news_articles")
+#newsArticleCollection = db.get_collection("newsArticleCollection")
 
 # Getting Full Content from url from newsAPI
 def getFullContent(url):
@@ -313,6 +313,7 @@ def articleScrapAndStore():
                     print('Error in content / Going to next article')
                     continue
 
+                
 
                 # News article content embedding 
                 try:
@@ -320,6 +321,9 @@ def articleScrapAndStore():
                 except:
                     continue
                 #prevent errors on sites that cannot be scrap
+
+                
+                
 
                 # Block Duplicated News
                 try:
@@ -363,28 +367,33 @@ def add_toDB_check(source,author,title,url,date,content):
         if not newsRelevancy(content):
             print("Rejected insertion to Database")
             to_Addchecker = False
+            
     #catch articles that cannot be scrap
     except:
         print('Error in content')
         to_Addchecker = False
 
-    # News article content embedding 
-    try:
-        embeddedContent  = article_embeddings.embed_query(content)
-    except:
-        print("Article Content Cannot Be Embedded")
-        to_Addchecker = False
-    #prevent errors on sites that cannot be scrap
+    # News article content embedding
+    if to_Addchecker:
+        try:
+            embeddedContent  = article_embeddings.embed_query(content)
+        except:
+            print("Article Content Cannot Be Embedded")
+            to_Addchecker = False
+        #prevent errors on sites that cannot be scrap
+
+    
 
     # Block Duplicated News
-    try:
-        if check_duplicate(embeddedContent,newsArticleCollection):
-            print("Duplicated News Detected. Rejected insertion.")
+    if to_Addchecker:
+        try:
+            if check_duplicate(embeddedContent,newsArticleCollection):
+                print("Duplicated News Detected. Rejected insertion.")
+                to_Addchecker = False
+                
+        except:
+            print("Error with content - Under Duplicated News. Rejected insertion.")
             to_Addchecker = False
-            
-    except:
-        print("Error with content - Under Duplicated News. Rejected insertion.")
-        to_Addchecker = False
 
     if to_Addchecker:
     # News article sub-categorisation
