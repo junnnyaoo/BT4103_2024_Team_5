@@ -74,7 +74,7 @@ def getNews(collection, selected_categories, start_end_date = []):
 
         if len(start_end_date) == 0 or ('Unknown publish date' != news["date"] and start <= date_time <= end):
 
-            output += "*Article #" + str(i + 1) + "*\n"
+            output += "*Article #" + count + 1 + "*\n"
             data = ""
             data += "*Title*: " + str(news["title"])
             data += "*Website Link*: " + str(news['url'])
