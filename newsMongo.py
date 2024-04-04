@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 from newsapi import NewsApiClient
 from newspaper import Article
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import threading
 import pytz
@@ -17,13 +17,21 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 import newsRev_BART
 import newsRev_DeBERTa
+import newsRev_BART
+import newsRev_DeBERTa
 import os
+import feedparser
 
 # Initial Setup
 load_dotenv()
 newsapi = NewsApiClient(os.getenv("NEWS_API_KEY"))
 api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
+
+#--- Knowledge DB ----#
+db = mongo_client.get_database("knowledge_db")
+newsArticleCollection = db["tech_articles"]
+###
 
 #--- Knowledge DB ----#
 db = mongo_client.get_database("knowledge_db")
@@ -168,6 +176,61 @@ def relevance_GPT(article_insert):
     except Exception as e:
         print(f"An error occurred: {e}")
         return "Irrelevant"  # Return 'Irrelevant'' category in case of error
+# News Relevance with GPT
+def relevance_GPT(article_insert):
+    #print('RELEVANCE GPT FUNCTION WORKING')
+    try:
+        #Defining Function + ChatGPT
+        #Langchain implementation
+        template = """ You are a bot that will be given an article and to deem if it is relevant to technology. 
+        Please answer with Relevant or Irrelevant 
+
+        Technology also includes the following:
+        
+        AI includes Discriminative AI, Machine Learning, Generative AI
+
+        Quantum Computing includes Quantum Internet, Quantum Communications, Quatum Computing
+
+        Green Computing includes Green Serverless Computing, Green Edge Applications, Green Data Streaming
+
+        Robotics
+
+        Trust Technologies includes Privacy Enhancing Technologies, Regulation Technologies, Al Governance Technologies
+
+        Anti-disinformation technologies includes Content Provenance Technologies, Anti-misinformation technologies, Detection of Generated Al content
+
+        Communications Technologies includes 5G, Networks, Seamless
+
+        In terms of the article information, classify them as Relevant or Irrelevant. 
+
+        Make sure that there are no spacing before the first word.
+
+
+        Human: {article}
+        Assistant:"""
+
+        prompt = PromptTemplate(
+            input_variables=["article"], 
+            template=template
+        )
+
+        chatgpt_chain = LLMChain(
+            llm = OpenAI(openai_api_key=api_key,model="gpt-3.5-turbo-instruct", temperature=0), 
+            prompt=prompt, 
+            verbose=False,  # Set verbose to False to suppress output
+            memory=ConversationBufferMemory(memory_key="history", input_key="article")
+        )
+        #Let ChatGPT to Categorise
+        output = chatgpt_chain.predict(article=article_insert) 
+
+        #To make sure that there are no spacing which ChatGPT outputs " Category_Name" -> "Category_Name"
+        output = output.strip()
+
+        return output
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return "Irrelevant"  # Return 'Irrelevant'' category in case of error
 
 
     # Getting Full Content from url from newsAPI
@@ -182,6 +245,40 @@ def getFullContent(url):
     except HTTPError as e:
         print("HTTP Error:", e)
     return None
+
+
+# News Relevance Filter
+def newsRelevancy(article_content):
+    countRelevance = 0
+    
+    gpt_Relevance = relevance_GPT(article_content)
+    if (gpt_Relevance == "Relevant"):
+        countRelevance += 1
+
+    #print("GPT:")
+    #print(gpt_Relevance)
+
+    #LLM 1
+    bart_Relevance = newsRev_BART.bart_Function(article_content)
+    if (bart_Relevance == "Relevant"):
+        countRelevance += 2
+    #print("BART:")
+    #print(bart_Relevance)
+    #LLM 2
+    deberta_relevance = newsRev_DeBERTa.DeBERTa_Function(article_content)
+    if (deberta_relevance == "Relevant"):
+        countRelevance += 3
+    #print("deBerta:")
+    #print(deberta_relevance)
+        
+    #False to deem article not relevant
+    if countRelevance >= 3:
+        print("Final: Relevant")
+        return True
+    else:
+        print("Final: Irrelevant")
+        return False
+
 
 
 # News Relevance Filter
@@ -276,6 +373,10 @@ def articleScrapAndStore():
                                         q = 'AI OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies',
                                         from_param="2024-03-28",
                                         to = '2024-03-31') #last scrapped 31th march 
+    tech_news = newsapi.get_everything(language='en',
+                                        q = 'AI OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies',
+                                        from_param="2024-03-28",
+                                        to = '2024-03-31') #last scrapped 31th march 
     article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
 
     if tech_news['status'] == 'ok':
@@ -283,6 +384,8 @@ def articleScrapAndStore():
         count = 0
 
         for article in articles:
+            if count < 200:
+                count += 1
             if count < 200:
                 count += 1
                 if article['url'].startswith('https://www.youtube.com/watch?'):
@@ -354,8 +457,148 @@ def articleScrapAndStore():
                 newsArticleCollection.insert_one(article_data)
                 # collection.insert_one(article_data)
                 #count += 1    
+                #count += 1    
             else:
                 break
+
+def TX_RSS_ScrapAndStore():
+    rss_feed_urls = [
+        "https://techxplore.com/rss-feed/machine-learning-ai-news/",
+        "https://techxplore.com/rss-feed/breaking/",
+        "https://techxplore.com/rss-feed/energy-green-tech-news/",
+        "https://techxplore.com/rss-feed/robotics-news/",
+        "https://techxplore.com/rss-feed/telecom-news/",
+
+    ]
+
+    article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536)
+
+    for rss_feed_url in rss_feed_urls:
+        feed = feedparser.parse(rss_feed_url)
+
+        for entry in feed.entries:
+            # if 'link' not in entry or 'title' not in entry or 'summary' not in entry:
+            #     continue
+
+            title = entry.title
+            url = entry.link
+            content  = getFullContent(url)
+
+            # Filter out irrelevant articles
+            try:
+                if not newsRelevancy(content):
+                    print("Rejected insertion to Database")
+                    continue
+            except Exception as e:
+                print(f"Error in content / Going to next article: {str(e)}")
+                continue
+
+            # News article content embedding 
+            try:
+                embeddedContent = article_embeddings.embed_query(content)
+            except Exception as e:
+                print(f"Error embedding content: {str(e)}")
+                continue
+
+            # Block Duplicated News
+            try:
+                if check_duplicate(embeddedContent, newsArticleCollection):
+                    print("Duplicated News Detected. Rejected insertion.")
+                    continue
+            except Exception as e:
+                print(f"Error checking duplicate: {str(e)}")
+                continue
+
+            # Additional fields from the RSS feed
+            article = Article(url)
+            article.download()
+            article.parse()
+            
+            author = ','.join(article.authors)  # Assuming TechXplore does not provide this info
+            newsCategory = categorizer_GPT(content)
+
+            # Article published date converted to SGT
+            #date = entry.published  # Assuming TechXplore provides published date in the standard format
+            date_format = "%a, %d %b %Y %H:%M:%S"
+            parsed_date = datetime.strptime(entry.published[:-4], date_format) + timedelta(hours=4)
+
+            # Since EDT is UTC-4, we adjust for that first before converting to SGT
+            sgt = pytz.timezone('Asia/Singapore')  # Singapore Time Zone
+            sgt_date = parsed_date.replace(tzinfo=pytz.utc).astimezone(sgt)
+
+            # # Localize to EDT and then convert to SGT
+            # localized_date = edt.localize(parsed_date)
+            # converted_date = localized_date.astimezone(sgt)
+
+            # Format the date in the desired format
+            date = sgt_date.strftime("%Y-%m-%dT%H:%M:%S SGT")
+
+            article_data = {
+                'source': 'TechXplore',
+                'author': author,
+                'newsCategory': newsCategory,
+                'title': title,
+                'url': url,
+                'date': date,
+                'content': content,
+                'embeddedContent': embeddedContent
+            }
+            newsArticleCollection.insert_one(article_data)
+
+
+def add_toDB_check(source,author,title,url,date,content):
+    article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
+    to_Addchecker = True
+
+    #Filter out irrelevant article
+    try:
+        if not newsRelevancy(content):
+            print("Rejected insertion to Database")
+            to_Addchecker = False
+    #catch articles that cannot be scrap
+    except:
+        print('Error in content')
+        to_Addchecker = False
+
+    # News article content embedding 
+    try:
+        embeddedContent  = article_embeddings.embed_query(content)
+    except:
+        print("Article Content Cannot Be Embedded")
+        to_Addchecker = False
+    #prevent errors on sites that cannot be scrap
+
+    # Block Duplicated News
+    try:
+        if check_duplicate(embeddedContent,newsArticleCollection):
+            print("Duplicated News Detected. Rejected insertion.")
+            to_Addchecker = False
+            
+    except:
+        print("Error with content - Under Duplicated News. Rejected insertion.")
+        to_Addchecker = False
+
+    if to_Addchecker:
+    # News article sub-categorisation
+        newsCategory = categorizer_GPT(content)
+
+        article_data = {
+            'source': source, 
+            'author': author,
+            'newsCategory': newsCategory,
+            'title': title,
+            'url': url,
+            'date': date,
+            'content': content,
+            'embeddedContent': embeddedContent
+            }
+
+        #To be adjusted to another function where we check if its relevant and store into MongoDB
+        newsArticleCollection.insert_one(article_data)
+        print("Added into Database")
+        ###
+    else:
+        print("Not added into Database")
 
 
 def add_toDB_check(source,author,title,url,date,content):
@@ -447,6 +690,10 @@ def urlScrapeAndStore(url):
         author = article.authors[0]
     except:
         author= "Not Found"
+    try:
+        author = article.authors[0]
+    except:
+        author= "Not Found"
 
     # Extract title
     title  = article.title
@@ -480,4 +727,5 @@ def urlScrapeAndStore(url):
 
     return output
 
-#articleScrapAndStore()
+articleScrapAndStore()
+TX_RSS_ScrapAndStore()
