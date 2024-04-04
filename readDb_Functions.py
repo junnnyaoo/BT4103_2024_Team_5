@@ -61,7 +61,7 @@ def getNews(collection, selected_categories, start_end_date = []):
 
     for i, news in enumerate(sorted_news):
         #only output 5 news
-        if count == 5:
+        if count == 3:
             break
 
         # set the format of the date string and parse it if user selected date period

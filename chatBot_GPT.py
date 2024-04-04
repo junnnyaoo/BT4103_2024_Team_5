@@ -72,9 +72,6 @@ def url(query):
     
     return output
 
-llm = ChatOpenAI(api_key=api_key, model='gpt-4-0125-preview', temperature=0, verbose=True)
-memory = ConversationBufferWindowMemory(memory_key='chat_history',k = 5, return_messages=True)
-
 categories = ["All", "General", "AI", "Quantum Computing", "Green Computing", "Robotics", "Trust Technologies", "Anti-disinformation technologies", "Communications Technologies"]
 
 def extract_dates(query):
@@ -156,12 +153,15 @@ tools = [Tool(
     ),
 ]
 
+
+llm = ChatOpenAI(api_key=api_key, model='gpt-4-0125-preview', temperature=0, verbose=True)
+memory = ConversationBufferWindowMemory(memory_key='chat_history',k = 5, return_messages=True)
 agent = initialize_agent(
     agent = 'conversational-react-description',
     tools=tools,
     llm=llm,
     verbose=True,
-    max_iterations=2,
+    max_iterations=3,
     early_stopping_method='generate', 
     memory=memory,
     # return_intermediate_steps=True
@@ -244,8 +244,6 @@ New input: {input}
 #--------------------------------------------------------------------------------------------------------------------
 #               SCHEDULE MESSAGE Slack API 
 #--------------------------------------------------------------------------------------------------------------------
-# WebClient instantiates a client that can call API methods
-# When using Bolt, you can use either `app.client` or the `client` passed to listeners.
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
@@ -332,35 +330,30 @@ def start(message, say):
 @app.action("schedule_category_select")
 def update_message(ack, body, say):
     ack()
-    # Extract selected options
-    print(body)
 
     #Extracting schedule days
     days_interval = body["state"]["values"]["schedule_radiobuttons"]["radio_buttons-action"]["selected_option"]["value"]
-
     # Extracting all values of selected_options/categories
     selected_options = []
     selected_options.extend(option["value"] for option in body['state']['values']["category_checkboxes"]['checkboxes-action']['selected_options'])
     selected_options_string = ", ".join(selected_options)
 
-    #if user click this again it means he/she wants schedule to reset
-    #get list of scheduled msgs to remove them
+    #if user click this again it means he/she wants to reset schedule options
+    #we need to get list of scheduled msgs to remove them if any
     scheduled_list = client.chat_scheduledMessages_list()['scheduled_messages']
     
-    #update slack message
     if len(scheduled_list) == 0:
         text = "We have received your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + selected_options_string
     else:
         text = "We have rescheduled your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + selected_options_string
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = text)
-    
-    #----------------- Perform scheduling -----------------
+
     scheduled_msg_id_list = []
     for msg in scheduled_list:
         if msg['channel_id'] == body['channel']['id']:
             scheduled_msg_id_list.append(msg['id'])
         
-    # delete those msgs scheduled in this channel
+    # delete those msgs previously scheduled in this channel
     for msg_id in scheduled_msg_id_list:
         client.chat_deleteScheduledMessage(channel=body['channel']['id'],scheduled_message_id=msg_id)
 
@@ -371,28 +364,22 @@ def update_message(ack, body, say):
 @app.action("category_select")
 def update_message(ack, body, say):
     ack()
-    print(body)
-
-    selected_options = []
     #get the categories selected
+    selected_options = []
     selected_options.extend(option["value"] for option in body['state']['values']["category_checkboxes"]['checkboxes-action']['selected_options'])
     selected_options_string = ", ".join(selected_options)
     client.chat_update(channel = body['channel']['id'],ts = body['message']['ts'], text = "Category selection received: " + selected_options_string)
-    #push to user and at the same time activate the function to retrieve the result 
     say("Here are the latest news filtered by selected category: " + selected_options_string)
 
 # action listener for category news
 @app.action("date_select")
 def update_message(ack, body, say):
     ack()
-    print(body)
-    
-    selected_options = []
     #get the categories selected
+    selected_options = []
     selected_options.extend(option["value"] for option in body['state']['values']["category_checkboxes"]['checkboxes-action']['selected_options'])
     selected_options_string = ", ".join(selected_options)
     client.chat_delete(channel = body['channel']['id'],ts = body['message']['ts'])
-
     #push to user and at the same time activate the function to show date picker for date selection
     say(channel= body['channel']['id'],
             text = "Category selection received: " + selected_options_string,
@@ -403,10 +390,9 @@ def update_message(ack, body, say):
 @app.action("date_selected")
 def update_message(ack, body, say):
     ack()
-    print(body)
     #get the categories selected from date_select action
     split_string = body['message']['text'].split("Category selection received: ")[1]
-    # Split the categories and store it into a list for processing
+    #split the categories and store it into a list for processing
     selected_categories = split_string.split(", ")
     cleaned_selected_categories = []
     for item in selected_categories:
@@ -438,7 +424,6 @@ def messaage_handler(message, say, logger):
     #if its not any features, use agent to return result
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
         response = agent(message['text'])
-
         say(response["output"])
 
 #--------------------------------------------------------------------------------------------------------------------
