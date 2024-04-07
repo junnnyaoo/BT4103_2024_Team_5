@@ -697,5 +697,5 @@ def urlScrapeAndStore(url):
 
     return output
 
-articleScrapAndStore()
-TX_RSS_ScrapAndStore()
+#articleScrapAndStore()
+#TX_RSS_ScrapAndStore()
