@@ -133,7 +133,8 @@ tools = [Tool(
         name = 'URL',
         func = url,
         description = """
-            Use this tool if user sends an URL in the query. Access the URL and give an insightful summary of the news article from the URL. 
+            Use this tool if user sends an URL in the query OR any further questions about the article from the URL.
+            Access the URL and give an insightful summary of the news article from the URL. 
             Use the information generated from the URL given to help you form your summary. The summary should be substantial with at least six to eight lines.
         """
     ),
@@ -185,7 +186,8 @@ Assistant has access to the following tools:
         For all questions, ALWAYS use this tool and the information with LLM to generate answer.
     
 > URL:
-        Use this tool if user sends an URL in the query. Access the URL and give an insightful summary of the news article from the URL. 
+        Use this tool if user sends an URL in the query OR any further questions about the article from the URL.
+        Access the URL and give an insightful summary of the news article from the URL. 
         Use the information generated from the URL given to help you form your summary. The summary should be substantial with at least six to eight lines.
 
 > Date period and Categories: 
