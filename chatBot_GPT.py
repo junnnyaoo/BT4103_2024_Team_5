@@ -164,10 +164,6 @@ agent = initialize_agent(
     max_iterations=3,
     early_stopping_method='generate', 
     memory=memory,
-    # return_intermediate_steps=True
-    # agent_kwargs={
-    #     'prefix': template
-    # }
 )
 
 agent.agent.llm_chain.prompt.template = """ 
@@ -247,9 +243,6 @@ New input: {input}
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
-# print("\n##############################################################################################################")
-# print(client.chat_scheduledMessages_list())
-# print("##############################################################################################################\n")
 
 #handling the schedule of news up to 120 days and days interval as selected
 def handle_schedule(channel_id, channel_name, days_interval, selected_options_string):
@@ -296,11 +289,7 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
                 post_at=schedule_timestamp
             )
 
-        #for testing
         count += 1
-    # print("\n##############################################################################################################")
-    # print(client.chat_scheduledMessages_list())
-    # print("##############################################################################################################\n")
 
 
 #--------------------------------------------------------------------------------------------------------------------
