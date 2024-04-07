@@ -32,8 +32,8 @@ template_2 = template_2
 
 # Initialize MongoDB
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
-db = mongo_client.get_database("news_articles")
-collection = db.get_collection("newsArticleCollection")
+db = mongo_client.get_database("knowledge_db")
+collection = db["tech_articles"]
 article_embeddings = OpenAIEmbeddings(model="text-embedding-3-large", dimensions=1536) # model used to embed article
 query_embeddings = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=1536) # model used to embed user queries
 
