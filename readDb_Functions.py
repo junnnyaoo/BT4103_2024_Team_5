@@ -74,11 +74,11 @@ def getNews(collection, selected_categories, start_end_date = []):
 
         if len(start_end_date) == 0 or ('Unknown publish date' != news["date"] and start <= date_time <= end):
 
-            output += "*Article #" + count + 1 + "*\n"
+            output += "Article #" + str(count + 1) + "\n"
             data = ""
-            data += "*Title*: " + str(news["title"])
-            data += "*Website Link*: " + str(news['url'])
-            data += "*Date of Article*: " + str(news["date"])
+            data += "Title: " + str(news["title"])
+            data += "Website Link: " + str(news['url'])
+            data += "Date of Article: " + str(news["date"])
             
             # Filter out stop words and punctuation from the tokenized words, then join them back into a single string for gpt summarization
             words = nltk.word_tokenize(news["content"])
@@ -87,7 +87,7 @@ def getNews(collection, selected_categories, start_end_date = []):
             filtered_words = [word for word in words if word.lower() not in stop_words and word not in punctuation]
             filtered_text = ' '.join(filtered_words)
 
-            data += "*information*: " + str(filtered_text)
+            data += "information: " + str(filtered_text)
             output += user_query(data) + "\n\n"
             count += 1
 

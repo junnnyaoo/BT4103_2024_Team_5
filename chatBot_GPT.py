@@ -42,13 +42,13 @@ def vector_search(query):
             "$vectorSearch": { # $vectorSearch is the specific function name
                 "index": "vector_index", # The search index I created on MongoDB
                 "queryVector": query_embedding, # The embedded query from the user that is used for searching
-                "path": "embedding", # The relevant field of the document that is used for searching (in this case the full text of the news article)
+                "path": "embeddedContent", # The relevant field of the document that is used for searching (in this case the full text of the news article)
                 "limit": 3, # How many results you want the vectorSearch to show
                 "numCandidates": 100 # How many documents you want vectorSearch to consider when searching
             }
         }
     ]
-    results = db['newsArticleCollection'].aggregate(pipeline) # executing the search
+    results = db['tech_articles'].aggregate(pipeline) # executing the search
     search_result = ''
     for result in list(results):
         search_result += f"Title: {result.get('title', 'N/A')}, URL: {result.get('url', 'N/A')}, Date: {result.get('date', 'N/A')}, Content: {result.get('content', 'N/A')}"
@@ -223,7 +223,7 @@ Output note:
         When human ask for news article, ALWAYS do this:
         Using the observation result, output the 4 items in this format:
             Title: <Title Name>
-            Website Link: <Link of Website>
+            Website Link:
             Date of Article: <Get the latest date of publication>
             Summary: <Give an insightful summary of the article in six to eight lines. Include names to note, sentiment analysis, trends & statistics and key topic if available>
         
@@ -298,9 +298,6 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
 
         #for testing
         count += 1
-    # print("\n##############################################################################################################")
-    # print(client.chat_scheduledMessages_list())
-    # print("##############################################################################################################\n")
 
 
 #--------------------------------------------------------------------------------------------------------------------
