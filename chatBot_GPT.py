@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-from prompt_template import template_2
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from langchain.chat_models import ChatOpenAI
@@ -28,7 +27,6 @@ from datetime import datetime
 load_dotenv()
 app = App(token=os.getenv("SLACK_BOT_TOKEN"), ignoring_self_events_enabled = False) 
 api_key = os.getenv("OPENAI_API_KEY")
-template_2 = template_2
 
 # Initialize MongoDB
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
@@ -222,8 +220,7 @@ AI: [your response here]
 Output note:
 
         When human ask for news article, ALWAYS do this:
-        Using the observation result, output the 5 items in this format:
-            Article #n
+        Using the observation result, output the 4 items in this format:
             Title: <Title Name>
             Website Link: <Link of Website>
             Date of Article: <Get the latest date of publication>
