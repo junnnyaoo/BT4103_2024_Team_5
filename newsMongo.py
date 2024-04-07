@@ -8,10 +8,8 @@ import pytz
 from newspaper import Article, ArticleException
 from requests.exceptions import HTTPError
 from langchain import OpenAI, ConversationChain, LLMChain, PromptTemplate
-from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain_openai import OpenAIEmbeddings
-from pymongo import MongoClient
 from nltk.tokenize import word_tokenize
 from urllib.parse import urlparse
 from dotenv import load_dotenv
@@ -33,12 +31,7 @@ db = mongo_client.get_database("knowledge_db")
 newsArticleCollection = db["tech_articles"]
 ###
 
-#--- Knowledge DB ----#
-db = mongo_client.get_database("knowledge_db")
-newsArticleCollection = db["tech_articles"]
-###
-
-#DB for testing
+#DB for testing 
 #db = mongo_client.get_database("news_articles")
 #newsArticleCollection = db.get_collection("newsArticleCollection")
 
@@ -314,25 +307,8 @@ def newsRelevancy(article_content):
         return False
 
 
-
-## Ignore
-# test_article= 'What the researchers have to say about the AI worm\n\n“\n\nThe study demonstrates that attackers can insert such prompts into inputs that, when processed by GenAI models, prompt the model to replicate the input as output (replication) and engage in malicious activities (payload). Additionally, these inputs compel the agent to deliver them (propagate) to new agents by exploiting the connectivity within the GenAI ecosystem. We demonstrate the application of Morris II against GenAI-powered email assistants in two use cases (spamming and exfiltrating personal data), under two settings (black-box and white-box accesses), using two types of input data (text and images).”\n\nSpamming: Morris II generated and sent spam emails through the compromised email assistant.\n\nMorris II generated and sent spam emails through the compromised email assistant. Data Exfiltration: The worm extracted sensitive personal data from the infected system.\n\nComPromptMized: Unleashing Zero-click Worms that Target GenAI-Powered Applications\n\nWhat AI companies said about the worm\n\nA group of researchers have developed a prototype AI worm called Morris II . According to the research papers (spotted by Wired), this first-generation AI worm can steal data, spread malware and spam users through AI-powered email assistants . However, it\'s important to note that this research was conducted in a controlled environment and the worm has not been deployed in the real world.Yet, this development highlights the potential vulnerabilities in generative AI models and emphasises the need for strict security measures.The research team, comprising Ben Nassi of Cornell Tech, Stav Cohen of the Israel Institute of Technology, and Ron Bitton of Intuit, named the worm after the original Morris worm. This notorious computer worm unleashed in 1988. Unlike its predecessor, Morris II targets AI apps, specifically those using large language models (LLMs) like Gemini Pro , ChatGPT 4.0, and LLaVA, to generate text and images.The worm uses a technique called " adversarial self-replicating prompts ." These prompts, when fed into the LLM, trick the model into replicating them and initiating malicious actions. This includes:The researchers described:The researchers successfully demonstrated the worm\'s capabilities in two scenarios:The researchers said that AI worms like this can help cyber criminals to extract confidential information, including credit card details, social security numbers and more. They also uploaded a video on YouTube to explain how the worm works:In a statement, an OpenAI spokesperson said: “They appear to have found a way to exploit prompt-injection type vulnerabilities by relying on user input that hasn’t been checked or filtered.”The spokesperson said that the company is making its systems more resilient and added that developers should use methods that ensure they are not working with harmful input.Meanwhile, Google refused to comment about the research.'
-# print(categorizer_GPT(test_article))
-
-# tech_news = newsapi.get_everything(language='en', q = 'quantum computing', page_size=10)
-# print(tech_news)
-
-# article = Article('https://gizmodo.com/google-launch-competition-figure-out-quantum-computers-1851308439')
-# article.download()
-# article.parse()
-
-# newsCategory = categorizer_GPT(article.text)
-# print(newsCategory)
-
 def check_duplicate(article_embedding, collection):
 
-    #article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
-    #article_embedding = article_embeddings.embed_query(article)
     pipeline = [
         {
             "$vectorSearch": { # $vectorSearch is the specific function name
@@ -356,11 +332,9 @@ def check_duplicate(article_embedding, collection):
     ]
     
     results = collection.aggregate(pipeline) # executing the search
-    #article_check_duplicate = "In another example, Yue asks the phone to find a gift for his grandma who cannot get out of bed. It generated an interface with several products within carousels, and each row had a brief explanation of why the product might be a good fit. He settled on the Kindle.\n\nYue then did a long-press on the product card to ask another query: \"What is the screen made of?\" The phone generated the answer as a paragraph of text below (notably with no sources), and when he then asked to watch unboxing videos, it added a row of YouTube videos on the topic.\n\nThis wizardry is reminiscent of Siri cofounder Dag Kittlaus' onstage demo of Viv way back in 2016, which was designed to be a conversational smart layer that let users interact with various services. His live demo also included asking by voice the digital assistant to book him a hotel room in Palm Springs. Clearly mighty impressed, Samsung snapped up Viv later that same year, and we've not really seen anything of it since.\n\nYou can get a pretty good glimpse of how Brain Technologies' tech works with its app, Natural AI, which it released in 2020. Yue says his company pioneered the large action models that can enable a digital AI assistant to execute tasks. Since the company had an early start, its AI can purportedly generate interfaces for more than 4 million functions it has trained since 2016. That should cover almost anything you can do on a computing device. “Instead of going to apps, apps come to you,” he says.\n\nBut Yue doesn’t think we’re moving away from apps just yet. That’s why this concept device is still an Android phone. If you don’t want to converse with the AI, you can access apps just like normal. The touchscreen isn’t going away either, and he believes this concept is the right combination of AI and a graphical interface.\n\nBrain Technologies has apparently already received tremendous interest from other manufacturers, and Yue says it's the only AI company the Emerson Collective (Laurene Powell Jobs' venture capital firm) has invested in. It seems almost inevitable that we'll see its generated interfaces in more kinds of devices in the future.\n\n“Everything is app-centric,” Yue says. “We’re trying to build a human-centric future. We’re trying to give people more power in this relationship. At the end of the day, whatever the next best interface is, wins.”\n\nSierra, a startup developing AI-powered agents to “elevate the customer experience” for big companies including WeightWatchers, Sonos, and SiriusXM, is of a similar view, stating that, in the future, a company’s AI version of itself will be just as, if not more, important as its app or website. “It's going to completely change the way companies exist digitally,” says Bret Taylor, who left his job as co-CEO of Salesforce to start Sierra.\n\nHuman After All\n\nThe founders of A Phone, A Friend—Tomas Ramanauskas and Tomas Dirvonskas—echoed the same sentiments on making phones more personal with the help of AI. “We think that AI gives an opportunity to humanize this relationship to actually make it more human instead of just this cold, transactional, attention economy kind of thing,” Ramanauskas says."
-    #result_check = check_duplicate(article_check_duplicate, newsArticleCollection)
-    for i in results:
-        
-        if i['score'] > 0.96:
+
+    for i in results:    
+        if i['score'] > 0.96: #prevent highly similar articles from being inserted into database
             return True  #True to being a duplicated article    
     
     return False
@@ -368,15 +342,12 @@ def check_duplicate(article_embedding, collection):
 
 
 def articleScrapAndStore():
-    # tech_top_headlines = newsapi.get_top_headlines(language='en',category= 'technology',)
+
     tech_news = newsapi.get_everything(language='en',
                                         q = 'AI OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies',
-                                        from_param="2024-03-28",
-                                        to = '2024-03-31') #last scrapped 31th march 
-    tech_news = newsapi.get_everything(language='en',
-                                        q = 'AI OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies',
-                                        from_param="2024-03-28",
-                                        to = '2024-03-31') #last scrapped 31th march 
+                                        from_param="2024-04-01",
+                                        to = '2024-04-07') #last scrapped 7th march 
+
     article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
 
     if tech_news['status'] == 'ok':
@@ -712,7 +683,6 @@ def urlScrapeAndStore(url):
 
     
     t1 = threading.Thread(target=add_toDB_check,args=(source,author,title,url,date,truncated_content))
-#t2 = threading.Thread(target=func_d,args=(10,))
     print('Thread Start')
     t1.start()
     
@@ -727,5 +697,5 @@ def urlScrapeAndStore(url):
 
     return output
 
-# articleScrapAndStore()
-# TX_RSS_ScrapAndStore()
+#articleScrapAndStore()
+#TX_RSS_ScrapAndStore()
