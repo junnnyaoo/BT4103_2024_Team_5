@@ -221,16 +221,18 @@ AI: [your response here]
 Output note:
 
         When human ask for news article, ALWAYS do this:
-        Using the observation result, output the 4 items in this format:
-            Title: <Title Name>
-            Website Link:
-            Date of Article: <Get the latest date of publication>
+        Using the observation result, output the 4 items in this format, 
+        Add one asterisk infront and behind the word "Title","Website Link","Date of Article" and "Summary"
+            Title: (title here, do not add or change anything)
+            Website Link: (link here, do not add or change anything)
+            Date of Article: (date of publication here, do not add or change anything)
             Summary: <Give an insightful summary of the article in six to eight lines. Include names to note, sentiment analysis, trends & statistics and key topic if available>
+        
         
         Output 3 articles if user did not specify the number of articles to be shown
 
 If there is not enough data, just output what you have.
-Do not change human input to action input
+Do not change human input to action input.
 
 Begin!
 
@@ -246,10 +248,6 @@ New input: {input}
 #--------------------------------------------------------------------------------------------------------------------
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
-
-# print("\n##############################################################################################################")
-# print(client.chat_scheduledMessages_list())
-# print("##############################################################################################################\n")
 
 #handling the schedule of news up to 120 days and days interval as selected
 def handle_schedule(channel_id, channel_name, days_interval, selected_options_string):
@@ -298,7 +296,6 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
 
         #for testing
         count += 1
-
 
 #--------------------------------------------------------------------------------------------------------------------
 #               Slackbot listener
@@ -410,13 +407,17 @@ def messaage_handler(message, say, logger):
     #only bot can post news
     if 'bot_id' in message.keys() and message['text'].startswith("Here are the latest news"):
         # Split the string after "selected category:" to get the categories
-        split_string = message['text'].split("selected category: ")[1]
-        selected_categories = split_string.split(", ")
-        cleaned_selected_categories = []
-        for item in selected_categories:
-            cleaned_selected_categories.append(item.replace("&amp;", "&"))
-        #read news from db
-        say(readDb_Functions.getNews(collection, cleaned_selected_categories))
+        if "selected category" in message['text']:
+            split_string = message['text'].split("selected category: ")[1]
+            selected_categories = split_string.split(", ")
+            cleaned_selected_categories = []
+            for item in selected_categories:
+                cleaned_selected_categories.append(item.replace("&amp;", "&"))
+            #read news from db
+            say(readDb_Functions.getNews(collection, cleaned_selected_categories))
+        else:
+            say(readDb_Functions.getNews(collection, ['All']))
+
     
     #if its not any features, use agent to return result
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
