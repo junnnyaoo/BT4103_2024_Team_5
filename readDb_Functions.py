@@ -23,7 +23,7 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
 )
 
-def user_query(query):
+def article_query(query):
     conversation = []
     conversation.append(system_message)
     conversation.append({"role": "user", "content": query})
@@ -38,7 +38,7 @@ def user_query(query):
 #Query to filter news by categories if categoreies is not 'All'
 #Sort the filtered news by published_at in descending order
 #only top 5 news retrieved
-def getNews(collection, selected_categories, start_end_date = []):
+def getNews(collection, selected_categories, start_end_date = [], useGPT = True):
 
     print(selected_categories)
     print(start_end_date)
@@ -74,8 +74,8 @@ def getNews(collection, selected_categories, start_end_date = []):
             output += "Article #" + str(count + 1) + "\n"
             data = ""
             data += "Title: " + str(news["title"])
-            data += "Website Link: " + str(news['url'])
-            data += "Date of Article: " + str(news["date"])
+            data += "URL: " + str(news['url'])
+            data += "Date: " + str(news["date"])
             
             # Filter out stop words and punctuation from the tokenized words, then join them back into a single string for gpt summarization
             words = nltk.word_tokenize(news["content"])
@@ -84,8 +84,12 @@ def getNews(collection, selected_categories, start_end_date = []):
             filtered_words = [word for word in words if word.lower() not in stop_words and word not in punctuation]
             filtered_text = ' '.join(filtered_words)
 
-            data += "information: " + str(filtered_text)
-            output += user_query(data) + "\n\n"
+            data += "Content: " + str(filtered_text)
+            if useGPT:
+                output += article_query(data) + "\n\n"
+            else:
+                output += data + "\n\n"
+
             count += 1
 
         else:
