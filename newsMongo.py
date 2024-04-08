@@ -372,10 +372,10 @@ def TX_RSS_ScrapeAndStore():
             content  = getFullContent(url)
 
             # Truncate content if its too long
-                try:
-                    truncated_content = truncate_string_by_tokens(content)
-                except:
-                    continue
+            try:
+                truncated_content = truncate_string_by_tokens(content)
+            except:
+                continue
 
             # Filter out irrelevant articles
             try:
