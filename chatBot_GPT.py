@@ -285,7 +285,9 @@ def handle_schedule(channel_id, days_interval, selected_options_string):
             text= "Here are the latest news filtered by selected category: " + selected_options_string,
             post_at=schedule_timestamp
         )
-        
+
+        #tracking for scheduling of messages
+        print("Scheduling messages... " + str(next_schedule))
         next_schedule += days_interval
         count += 1
 
@@ -352,7 +354,11 @@ def update_message(ack, body, say):
             scheduled_msg_id_list.append(msg['id'])
     
     # delete those msgs previously scheduled in this channel
+    count, length_prev_msg = 0, len(scheduled_msg_id_list)
     for msg_id in scheduled_msg_id_list:
+        #tracking for deletion of messages
+        print("Deleting previously scheduled messages... " + str(count) + " / " + str(length_prev_msg))
+        count += 1
         client.chat_deleteScheduledMessage(channel=body['channel']['id'],scheduled_message_id=msg_id)
 
     #schedule the messages

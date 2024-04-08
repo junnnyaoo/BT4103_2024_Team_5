@@ -1,62 +1,3 @@
-#--------------------------------------------------------------------------------------------------------------------
-#               Interactive message for scheduler
-#--------------------------------------------------------------------------------------------------------------------
-
-# news_scheduler_blocks = [
-# 		{
-# 			"type": "section",
-# 			"text": {
-# 				"type": "plain_text",
-# 				"text": "Please choose how frequently (every 1/7/14/30 days) you'd like to receive news updates (News will be posted at 9am)."
-# 			}
-# 		},
-# 		{
-# 			"type": "actions",
-# 			"elements": [
-#                 {
-# 					"type": "button",
-# 					"text": {
-# 						"type": "plain_text",
-# 						"text": "1 Days"
-# 					},
-# 					"style": "primary",
-# 					"value": "1",
-#                     "action_id": "1d"
-# 				},
-# 				{
-# 					"type": "button",
-# 					"text": {
-# 						"type": "plain_text",
-# 						"text": "7 Days"
-# 					},
-# 					"style": "primary",
-# 					"value": "7",
-#                     "action_id": "7d"
-# 				},
-# 				{
-# 					"type": "button",
-# 					"text": {
-# 						"type": "plain_text",
-# 						"text": "14 Days"
-# 					},
-# 					"style": "primary",
-# 					"value": "14",
-#                     "action_id": "14d"
-# 				},
-# 				{
-# 					"type": "button",
-# 					"text": {
-# 						"type": "plain_text",
-# 						"text": "30 Days"
-# 					},
-# 					"style": "primary",
-# 					"value": "30",
-#                     "action_id": "30d"
-# 				}
-# 			]
-# 		}
-# 	]
-
 
 #--------------------------------------------------------------------------------------------------------------------
 #               Interactive message for category and schedule
@@ -335,7 +276,7 @@ news_category_blocks = [
 		}
 	]
 #--------------------------------------------------------------------------------------------------------------------
-#               Interactive message for category
+#               Interactive message for date
 #--------------------------------------------------------------------------------------------------------------------
 
 news_date_block = 	[

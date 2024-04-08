@@ -61,7 +61,7 @@ def getNews(collection, selected_categories, start_end_date = [], useGPT = True)
         if count == 3:
             break
 
-        # set the format of the date string and parse it if user selected date period
+        # set the format of the date string and parse it if user selected a specific date period
         if len(start_end_date) != 0:
             if 'Unknown publish date' != news["date"]:
                 news["date"] = news["date"].rsplit(' ', 1)[0]
