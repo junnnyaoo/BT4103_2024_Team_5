@@ -260,21 +260,23 @@ def handle_schedule(channel_id, days_interval, selected_options_string):
 
     while next_schedule < max_days:
         #-------------------BELOW FOR DEMO TESTING---------------------------
-        # schedule 25 second later
-        if count < 1:
-            now = datetime.datetime.now()
-            seconds, minutes = now.second + 20, now.minute
-            if seconds >= 60:
-                minutes += 1
-                seconds = seconds - 60
-            tomorrow = datetime.date.today() + datetime.timedelta(days = 0)
-            scheduled_time = datetime.time(now.hour, minutes, seconds)
-            schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
-            client.chat_scheduleMessage(
-                channel=channel_id,
-                text= "Here are the latest news filtered by selected category: " + selected_options_string,
-                post_at=schedule_timestamp
-            )
+        # # schedule 25 second later
+        # if count < 1:
+        #     now = datetime.datetime.now()
+        #     seconds, minutes = now.second + 20, now.minute
+        #     if seconds >= 60:
+        #         minutes += 1
+        #         seconds = seconds - 60
+        #     tomorrow = datetime.date.today() + datetime.timedelta(days = 0)
+        #     scheduled_time = datetime.time(now.hour, minutes, seconds)
+        #     schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
+        #     client.chat_scheduleMessage(
+        #         channel=channel_id,
+        #         text= "Here are the latest news filtered by selected category: " + selected_options_string,
+        #         post_at=schedule_timestamp
+        #     )
+        
+        # count += 1
         #-------------------ABOVE FOR DEMO TESTING---------------------------
         
         tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
@@ -287,9 +289,8 @@ def handle_schedule(channel_id, days_interval, selected_options_string):
         )
 
         #tracking for scheduling of messages
-        print("Scheduling messages... " + str(next_schedule))
+        print("Scheduling messages... Day " + str(next_schedule))
         next_schedule += days_interval
-        count += 1
 
         #schedule the last message as a reminder for user to reschedule again
         if next_schedule >= max_days:

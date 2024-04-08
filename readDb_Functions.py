@@ -57,6 +57,8 @@ def getNews(collection, selected_categories, start_end_date = [], useGPT = True)
         end = datetime.strptime(start_end_date[1], "%Y-%m-%dT%H:%M:%S")
 
     for i, news in enumerate(sorted_news):
+
+        print("Summarizing and searching for relevant articles... " + str(i))
         #only output 5 news
         if count == 3:
             break
