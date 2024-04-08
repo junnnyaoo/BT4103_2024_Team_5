@@ -17,7 +17,6 @@ from newsMongo import urlScrapeAndStore
 # Import WebClient from Python SDK (github.com/slackapi/python-slack-sdk)
 from slack_sdk import WebClient
 import datefinder
-from datetime import datetime
 
 #--------------------------------------------------------------------------------------------------------------------
 #               Slackbot init
@@ -72,6 +71,7 @@ def url(query):
 
 categories = ["All", "General", "AI", "Quantum Computing", "Green Computing", "Robotics", "Trust Technologies", "Anti-disinformation technologies", "Communications Technologies"]
 
+#using DateFinder library to find and extract dates on a string
 def extract_dates(query):
 
     formatted_dates = []
@@ -91,10 +91,11 @@ def extract_dates(query):
         formatted_dates = [formatted_dates[0],formatted_dates[0]]
 
     if len(formatted_dates) != 0:
-        formatted_dates[1] = datetime.strptime(formatted_dates[1], "%Y-%m-%dT%H:%M:%S").replace(hour=23, minute=59, second=59).strftime("%Y-%m-%dT%H:%M:%S")
+        formatted_dates[1] = datetime.datetime.strptime(formatted_dates[1], "%Y-%m-%dT%H:%M:%S").replace(hour=23, minute=59, second=59).strftime("%Y-%m-%dT%H:%M:%S")
 
     return formatted_dates
 
+#function for agent to retrieve news based on specific date and/or category
 def get_date_categories_specific_articles(query):
     
     dates = extract_dates(query)
@@ -105,14 +106,16 @@ def get_date_categories_specific_articles(query):
     for cat in categories:
         if cat.lower() in query.lower():
             selected_categories.append(cat)
+
     if len(selected_categories) == 0:
         selected_categories = ['All']
+
     #if selected categories is 'All' and dates = [] means agent uses wrong tool (which may happen sometime) this is an edge case, which returns the following to let
     #agent know
     if selected_categories == ['All'] and len(dates) == 0:
         return "Please use QnA Tool"
     
-    return readDb_Functions.getNews(collection, selected_categories, dates)
+    return readDb_Functions.getNews(collection, selected_categories, dates, useGPT = False)
 
 tools = [Tool(
     name = 'QnA',
@@ -144,8 +147,8 @@ tools = [Tool(
             Use this tool when user indicates a desire for news articles from a specific category and/or a specific date period.
             Such as "give me news for Green Computing on 13 May 2024" or "any news on Robotics" or "Share some articles from 13 May 2024 to 14 May 2024"
             Specific categories includes: "General", "AI", "Quantum Computing", "Green Computing", "Robotics", "Trust Technologies", "Anti-disinformation technologies", "Communications Technologies"
-            Do not use this tool if the specific categories are not mentioned.
             Do not use this tool if user ask question about these categories such as "What is Green Computing?" because they are not asking for news articles
+            Do not use Date period and Categories tool if the above specific categories are not in human query.
             When two dates are given, input the action as date1 'to' date2.
             """
         )
@@ -153,6 +156,7 @@ tools = [Tool(
 ]
 
 
+#Agent to handle users' queries
 llm = ChatOpenAI(api_key=api_key, model='gpt-4-0125-preview', temperature=0, verbose=True)
 memory = ConversationBufferWindowMemory(memory_key='chat_history',k = 5, return_messages=True)
 agent = initialize_agent(
@@ -162,11 +166,7 @@ agent = initialize_agent(
     verbose=True,
     max_iterations=3,
     early_stopping_method='generate', 
-    memory=memory,
-    # return_intermediate_steps=True
-    # agent_kwargs={
-    #     'prefix': template
-    # }
+    memory=memory
 )
 
 agent.agent.llm_chain.prompt.template = """ 
@@ -196,8 +196,9 @@ Assistant has access to the following tools:
 > Date period and Categories: 
         Use this tool when user indicates a desire for news articles from a specific category and/or a specific date period.
         Such as "give me news for Green Computing on 13 May 2024" or "any news on Robotics" or "Share some articles from 13 May 2024 to 14 May 2024"
-        Specific categories includes: "General", "AI", "Quantum Computing", "  Computing", "Robotics", "Trust Technologies", "Anti-disinformation technologies", "Communications Technologies"
-        Do not use these tools if the specific categories are not mentioned.
+        Specific categories includes: "General", "AI", "Quantum Computing", "Green Computing", "Robotics", "Trust Technologies", "Anti-disinformation technologies", "Communications Technologies"
+        Do not use this tool if user ask question about these categories such as "What is Green Computing?" because they are not asking for news articles
+        Do not use Date period and Categories tool if the above specific categories are not in human query.
         When two dates are given, input the action as date1 'to' date2.
 
 To use a tool, please use the following format:
@@ -230,6 +231,7 @@ Output note:
         
         
         Output 3 articles if user did not specify the number of articles to be shown
+        Ensure that there is only one asterisk infront and behind the word "Title","Website Link","Date of Article" and "Summary"
 
 If there is not enough data, just output what you have.
 Do not change human input to action input.
@@ -249,14 +251,16 @@ New input: {input}
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
 
+
 #handling the schedule of news up to 120 days and days interval as selected
-def handle_schedule(channel_id, channel_name, days_interval, selected_options_string):
+def handle_schedule(channel_id, days_interval, selected_options_string):
 
     count, next_schedule, days_interval = 0, int(days_interval), int(days_interval)
+    max_days = 120
 
-    while next_schedule < 120:
+    while next_schedule < max_days:
         #-------------------BELOW FOR DEMO TESTING---------------------------
-        #schedule 25 second later
+        # schedule 25 second later
         if count < 1:
             now = datetime.datetime.now()
             seconds, minutes = now.second + 20, now.minute
@@ -272,7 +276,7 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
                 post_at=schedule_timestamp
             )
         #-------------------ABOVE FOR DEMO TESTING---------------------------
-            
+        
         tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
         scheduled_time = datetime.time(9, 0, 0)
         schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
@@ -281,11 +285,13 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
             text= "Here are the latest news filtered by selected category: " + selected_options_string,
             post_at=schedule_timestamp
         )
+        
         next_schedule += days_interval
+        count += 1
 
         #schedule the last message as a reminder for user to reschedule again
-        if next_schedule >= 120:
-            tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
+        if next_schedule >= max_days:
+            tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule - days_interval)
             scheduled_time = datetime.time(9, 1, 0)
             schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
             client.chat_scheduleMessage(
@@ -293,9 +299,6 @@ def handle_schedule(channel_id, channel_name, days_interval, selected_options_st
                 text= "Your schedule has expired, please select a new schedule.",
                 post_at=schedule_timestamp
             )
-
-        #for testing
-        count += 1
 
 #--------------------------------------------------------------------------------------------------------------------
 #               Slackbot listener
@@ -319,7 +322,7 @@ def start(message, say):
             text = "Please select the news category you want to see.",
             blocks= blocks.news_category_blocks,
             as_user =True)
-
+    
 # action listener for news category, when user click this, we will output news filtered by category
 @app.action("schedule_category_select")
 def update_message(ack, body, say):
@@ -334,7 +337,8 @@ def update_message(ack, body, say):
 
     #if user click this again it means he/she wants to reset schedule options
     #we need to get list of scheduled msgs to remove them if any
-    scheduled_list = client.chat_scheduledMessages_list()['scheduled_messages']
+    #limit can be changed, now its set to max of 100 users, assuming the slack workspace < 100 users
+    scheduled_list = client.chat_scheduledMessages_list(limit = 12000)['scheduled_messages']
     
     if len(scheduled_list) == 0:
         text = "We have received your schedule choices: News update every " + str(days_interval) + " Days" + ", categories: " + selected_options_string
@@ -346,13 +350,13 @@ def update_message(ack, body, say):
     for msg in scheduled_list:
         if msg['channel_id'] == body['channel']['id']:
             scheduled_msg_id_list.append(msg['id'])
-        
+    
     # delete those msgs previously scheduled in this channel
     for msg_id in scheduled_msg_id_list:
         client.chat_deleteScheduledMessage(channel=body['channel']['id'],scheduled_message_id=msg_id)
 
     #schedule the messages
-    handle_schedule(body['channel']['id'], body['channel']['name'], days_interval, selected_options_string)
+    handle_schedule(body['channel']['id'], days_interval, selected_options_string)
 
 # action listener for category news
 @app.action("category_select")
@@ -418,7 +422,6 @@ def messaage_handler(message, say, logger):
         else:
             say(readDb_Functions.getNews(collection, ['All']))
 
-    
     #if its not any features, use agent to return result
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
         response = agent(message['text'])
