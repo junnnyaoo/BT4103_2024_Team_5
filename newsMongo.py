@@ -114,61 +114,7 @@ def categorizer_GPT(article_insert):
         print(f"An error occurred: {e}")
         return "General"  # Return 'General' category in case of error
     
-# News Relevance with GPT
-def relevance_GPT(article_insert):
-    #print('RELEVANCE GPT FUNCTION WORKING')
-    try:
-        #Defining Function + ChatGPT
-        #Langchain implementation
-        template = """ You are a bot that will be given an article and to deem if it is relevant to technology. 
-        Please answer with Relevant or Irrelevant 
 
-        Technology also includes the following:
-        
-        AI includes Discriminative AI, Machine Learning, Generative AI
-
-        Quantum Computing includes Quantum Internet, Quantum Communications, Quatum Computing
-
-        Green Computing includes Green Serverless Computing, Green Edge Applications, Green Data Streaming
-
-        Robotics
-
-        Trust Technologies includes Privacy Enhancing Technologies, Regulation Technologies, Al Governance Technologies
-
-        Anti-disinformation technologies includes Content Provenance Technologies, Anti-misinformation technologies, Detection of Generated Al content
-
-        Communications Technologies includes 5G, Networks, Seamless
-
-        In terms of the article information, classify them as Relevant or Irrelevant. 
-
-        Make sure that there are no spacing before the first word.
-
-
-        Human: {article}
-        Assistant:"""
-
-        prompt = PromptTemplate(
-            input_variables=["article"], 
-            template=template
-        )
-
-        chatgpt_chain = LLMChain(
-            llm = OpenAI(openai_api_key=api_key,model="gpt-3.5-turbo-instruct", temperature=0), 
-            prompt=prompt, 
-            verbose=False,  # Set verbose to False to suppress output
-            memory=ConversationBufferMemory(memory_key="history", input_key="article")
-        )
-        #Let ChatGPT to Categorise
-        output = chatgpt_chain.predict(article=article_insert) 
-
-        #To make sure that there are no spacing which ChatGPT outputs " Category_Name" -> "Category_Name"
-        output = output.strip()
-
-        return output
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return "Irrelevant"  # Return 'Irrelevant'' category in case of error
 # News Relevance with GPT
 def relevance_GPT(article_insert):
     #print('RELEVANCE GPT FUNCTION WORKING')
@@ -273,40 +219,6 @@ def newsRelevancy(article_content):
         return False
 
 
-
-# News Relevance Filter
-def newsRelevancy(article_content):
-    countRelevance = 0
-    
-    gpt_Relevance = relevance_GPT(article_content)
-    if (gpt_Relevance == "Relevant"):
-        countRelevance += 1
-
-    #print("GPT:")
-    #print(gpt_Relevance)
-
-    #LLM 1
-    bart_Relevance = newsRev_BART.bart_Function(article_content)
-    if (bart_Relevance == "Relevant"):
-        countRelevance += 2
-    #print("BART:")
-    #print(bart_Relevance)
-    #LLM 2
-    deberta_relevance = newsRev_DeBERTa.DeBERTa_Function(article_content)
-    if (deberta_relevance == "Relevant"):
-        countRelevance += 3
-    #print("deBerta:")
-    #print(deberta_relevance)
-        
-    #False to deem article not relevant
-    if countRelevance >= 3:
-        print("Final: Relevant")
-        return True
-    else:
-        print("Final: Irrelevant")
-        return False
-
-
 def check_duplicate(article_embedding, collection):
 
     pipeline = [
@@ -341,7 +253,7 @@ def check_duplicate(article_embedding, collection):
 
 
 
-def articleScrapAndStore():
+def articleScrapeAndStore():
 
     tech_news = newsapi.get_everything(language='en',
                                         q = 'AI OR Quantum Computing OR Green Computing OR Robotics OR Trust Technologies OR Anti-disinformation technologies OR Communications Technologies',
@@ -374,15 +286,21 @@ def articleScrapAndStore():
                 # Extract url
                 url = article['url']
 
-                # Scrap the full content from the URL
+                # Scrape the full content from the URL
                 content  = getFullContent(article['url'])
+
+                # Truncate content if its too long
+                try:
+                    truncated_content = truncate_string_by_tokens(content)
+                except:
+                    continue
 
                 #Filter out irrelevant article
                 try:
-                    if not newsRelevancy(content):
+                    if not newsRelevancy(truncated_content):
                         print("Rejected insertion to Database")
                         continue
-                #catch articles that cannot be scrap
+                #catch articles that cannot be scrape
                 except:
                     print('Error in content / Going to next article')
                     continue
@@ -391,10 +309,10 @@ def articleScrapAndStore():
 
                 # News article content embedding 
                 try:
-                    embeddedContent  = article_embeddings.embed_query(content)
+                    embeddedContent  = article_embeddings.embed_query(truncated_content)
                 except:
                     continue
-                #prevent errors on sites that cannot be scrap
+                #prevent errors on sites that cannot be scrape
 
                 
                 
@@ -413,7 +331,7 @@ def articleScrapAndStore():
                 date = getArticleDate(article['publishedAt'])
 
                 # News article sub-categorisation
-                newsCategory = categorizer_GPT(content)
+                newsCategory = categorizer_GPT(truncated_content)
 
                 article_data = {
                     'source': source, #Only taking out the name
@@ -422,17 +340,15 @@ def articleScrapAndStore():
                     'title': title,
                     'url': url,
                     'date': date,
-                    'content': content,
+                    'content': truncated_content,
                     'embeddedContent': embeddedContent
                 }
                 newsArticleCollection.insert_one(article_data)
-                # collection.insert_one(article_data)
-                #count += 1    
-                #count += 1    
+            
             else:
                 break
 
-def TX_RSS_ScrapAndStore():
+def TX_RSS_ScrapeAndStore():
     rss_feed_urls = [
         "https://techxplore.com/rss-feed/machine-learning-ai-news/",
         "https://techxplore.com/rss-feed/breaking/",
@@ -455,9 +371,15 @@ def TX_RSS_ScrapAndStore():
             url = entry.link
             content  = getFullContent(url)
 
+            # Truncate content if its too long
+                try:
+                    truncated_content = truncate_string_by_tokens(content)
+                except:
+                    continue
+
             # Filter out irrelevant articles
             try:
-                if not newsRelevancy(content):
+                if not newsRelevancy(truncated_content):
                     print("Rejected insertion to Database")
                     continue
             except Exception as e:
@@ -466,7 +388,7 @@ def TX_RSS_ScrapAndStore():
 
             # News article content embedding 
             try:
-                embeddedContent = article_embeddings.embed_query(content)
+                embeddedContent = article_embeddings.embed_query(truncated_content)
             except Exception as e:
                 print(f"Error embedding content: {str(e)}")
                 continue
@@ -486,7 +408,7 @@ def TX_RSS_ScrapAndStore():
             article.parse()
             
             author = ','.join(article.authors)  # Assuming TechXplore does not provide this info
-            newsCategory = categorizer_GPT(content)
+            newsCategory = categorizer_GPT(truncated_content)
 
             # Article published date converted to SGT
             #date = entry.published  # Assuming TechXplore provides published date in the standard format
@@ -511,7 +433,7 @@ def TX_RSS_ScrapAndStore():
                 'title': title,
                 'url': url,
                 'date': date,
-                'content': content,
+                'content': truncated_content,
                 'embeddedContent': embeddedContent
             }
             newsArticleCollection.insert_one(article_data)
@@ -526,7 +448,7 @@ def add_toDB_check(source,author,title,url,date,content):
         if not newsRelevancy(content):
             print("Rejected insertion to Database")
             to_Addchecker = False
-    #catch articles that cannot be scrap
+    #catch articles that cannot be scrape
     except:
         print('Error in content')
         to_Addchecker = False
@@ -537,69 +459,10 @@ def add_toDB_check(source,author,title,url,date,content):
     except:
         print("Article Content Cannot Be Embedded")
         to_Addchecker = False
-    #prevent errors on sites that cannot be scrap
+    #prevent errors on sites that cannot be scrape
 
+    if to_Addchecker:
     # Block Duplicated News
-    try:
-        if check_duplicate(embeddedContent,newsArticleCollection):
-            print("Duplicated News Detected. Rejected insertion.")
-            to_Addchecker = False
-            
-    except:
-        print("Error with content - Under Duplicated News. Rejected insertion.")
-        to_Addchecker = False
-
-    if to_Addchecker:
-    # News article sub-categorisation
-        newsCategory = categorizer_GPT(content)
-
-        article_data = {
-            'source': source, 
-            'author': author,
-            'newsCategory': newsCategory,
-            'title': title,
-            'url': url,
-            'date': date,
-            'content': content,
-            'embeddedContent': embeddedContent
-            }
-
-        #To be adjusted to another function where we check if its relevant and store into MongoDB
-        newsArticleCollection.insert_one(article_data)
-        print("Added into Database")
-        ###
-    else:
-        print("Not added into Database")
-
-
-def add_toDB_check(source,author,title,url,date,content):
-    article_embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large", dimensions=1536) # model used to embed article
-    to_Addchecker = True
-
-    #Filter out irrelevant article
-    try:
-        if not newsRelevancy(content):
-            print("Rejected insertion to Database")
-            to_Addchecker = False
-            
-    #catch articles that cannot be scrap
-    except:
-        print('Error in content')
-        to_Addchecker = False
-
-    # News article content embedding
-    if to_Addchecker:
-        try:
-            embeddedContent  = article_embeddings.embed_query(content)
-        except:
-            print("Article Content Cannot Be Embedded")
-            to_Addchecker = False
-        #prevent errors on sites that cannot be scrap
-
-    
-
-    # Block Duplicated News
-    if to_Addchecker:
         try:
             if check_duplicate(embeddedContent,newsArticleCollection):
                 print("Duplicated News Detected. Rejected insertion.")
@@ -637,9 +500,9 @@ def truncate_string_by_tokens(input_string):
     tokens = word_tokenize(input_string)
 
     # Check if the number of tokens exceeds the specified limit
-    if len(tokens) > 3800:
+    if len(tokens) > 3600:
         # Truncate the string by joining the first max_tokens tokens
-        truncated_string = ' '.join(tokens[:3800])
+        truncated_string = ' '.join(tokens[:3600])
         return truncated_string
     else:
         # Return the original string if it doesn't exceed the limit
@@ -667,11 +530,12 @@ def urlScrapeAndStore(url):
         author= "Not Found"
 
     # Extract title
-    title  = article.title
+    title = article.title
     
-    # Scrap the full content from the URL
-    content  = article.text
+    # Scrape the full content from the URL
+    content = article.text
     
+    # Truncate text if more than 3800 tokens, in the case of articles being too long such as research papers
     truncated_content = truncate_string_by_tokens(content)
 
 
@@ -681,13 +545,12 @@ def urlScrapeAndStore(url):
     else:
         date = 'Unknown publish date'
 
-    
+    # Send content for relevancy, duplicate check 
     t1 = threading.Thread(target=add_toDB_check,args=(source,author,title,url,date,truncated_content))
     print('Thread Start')
     t1.start()
     
-
-
+    # Output information to LLM to be used as context 
     output = {
         "Title": title,
         "Link": url,
@@ -697,5 +560,5 @@ def urlScrapeAndStore(url):
 
     return output
 
-#articleScrapAndStore()
-#TX_RSS_ScrapAndStore()
+#articleScrapeAndStore()
+#TX_RSS_ScrapeAndStore()
