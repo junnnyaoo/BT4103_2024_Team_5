@@ -356,7 +356,7 @@ def update_message(ack, body, say):
             scheduled_msg_id_list.append(msg['id'])
     
     # delete those msgs previously scheduled in this channel
-    count, length_prev_msg = 0, len(scheduled_msg_id_list)
+    count, length_prev_msg = 1, len(scheduled_msg_id_list)
     for msg_id in scheduled_msg_id_list:
         #tracking for deletion of messages
         print("Deleting previously scheduled messages... " + str(count) + " / " + str(length_prev_msg))
