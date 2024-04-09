@@ -83,10 +83,12 @@ def extract_dates(query):
         query = query.replace(" until ", " to ")
 
     matches = list(datefinder.find_dates(query))
-
+    
+    #extract all dates found by datefinder
     for date in matches:
         formatted_dates.append(date.strftime("%Y-%m-%dT%H:%M:%S"))
 
+    #if only one date is found, make it into a list of 2 datetime which is the start and from
     if len(formatted_dates) == 1:
         formatted_dates = [formatted_dates[0],formatted_dates[0]]
 
@@ -110,8 +112,8 @@ def get_date_categories_specific_articles(query):
     if len(selected_categories) == 0:
         selected_categories = ['All']
 
-    #if selected categories is 'All' and dates = [] means agent uses wrong tool (which may happen sometime) this is an edge case, which returns the following to let
-    #agent know
+    #if selected categories is 'All' and dates = [] could mean agent uses wrong tool (which may happen sometime) this is an edge case, 
+    #this returns the following to let agent know
     if selected_categories == ['All'] and len(dates) == 0:
         return "Please use QnA Tool"
     
@@ -250,7 +252,6 @@ New input: {input}
 #--------------------------------------------------------------------------------------------------------------------
 client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 logger = logging.getLogger(__name__)
-
 
 #handling the schedule of news up to 120 days and days interval as selected
 def handle_schedule(channel_id, days_interval, selected_options_string):

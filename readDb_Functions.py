@@ -34,10 +34,11 @@ def article_query(query):
     )
     return response.choices[0].message.content.strip()
 
-#function to get latest news at the moment
+#Function to get latest news at the moment
 #Query to filter news by categories if categoreies is not 'All'
 #Sort the filtered news by published_at in descending order
-#only top 5 news retrieved
+#Only top 5 news retrieved
+#useGPT is defined as getNews can be used by agent to extract data from mongodb, but doesnt require GPT to summarise since agent would do it
 def getNews(collection, selected_categories, start_end_date = [], useGPT = True):
 
     print(selected_categories)
