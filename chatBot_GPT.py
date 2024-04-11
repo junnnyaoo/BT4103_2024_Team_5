@@ -42,7 +42,7 @@ def vector_search(query):
                 "index": "vector_index", # The search index I created on MongoDB
                 "queryVector": query_embedding, # The embedded query from the user that is used for searching
                 "path": "embeddedContent", # The relevant field of the document that is used for searching (in this case the full text of the news article)
-                "limit": 3, # How many results you want the vectorSearch to show
+                "limit": 5, # How many results you want the vectorSearch to show
                 "numCandidates": 100 # How many documents you want vectorSearch to consider when searching
             }
         }
@@ -168,7 +168,7 @@ agent = initialize_agent(
     verbose=True,
     max_iterations=3,
     early_stopping_method='generate', 
-    memory=memory
+    memory=memory, handle_parsing_errors=True
 )
 
 agent.agent.llm_chain.prompt.template = """ 
@@ -232,11 +232,11 @@ Output note:
             Summary: <Give an insightful summary of the article in six to eight lines. Include names to note, sentiment analysis, trends & statistics and key topic if available>
         
         
-        Output 3 articles if user did not specify the number of articles to be shown
+        Output only 3 articles if user did not specify the number of articles to be shown
         Ensure that there is only one asterisk infront and behind the word "Title","Website Link","Date of Article" and "Summary"
 
-If there is not enough data, just output what you have.
 Do not change human input to action input.
+If the information provided is not relevant in answering the question, just share your insights directly.
 
 Begin!
 
@@ -363,6 +363,23 @@ def update_message(ack, body, say):
         count += 1
         client.chat_deleteScheduledMessage(channel=body['channel']['id'],scheduled_message_id=msg_id)
 
+    #-------------------BELOW FOR DEMO TESTING---------------------------
+    # # schedule 25 second later
+    now = datetime.datetime.now()
+    seconds, minutes = now.second + 20, now.minute
+    if seconds >= 60:
+        minutes += 1
+        seconds = seconds - 60
+    tomorrow = datetime.date.today() + datetime.timedelta(days = 0)
+    scheduled_time = datetime.time(now.hour, minutes, seconds)
+    schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
+    client.chat_scheduleMessage(
+        channel=body['channel']['id'],
+        text= "Here are the latest news filtered by selected category: " + selected_options_string,
+        post_at=schedule_timestamp
+    )
+    #-------------------ABOVE FOR DEMO TESTING---------------------------
+    
     #schedule the messages
     handle_schedule(body['channel']['id'], days_interval, selected_options_string)
 
