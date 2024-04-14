@@ -31,8 +31,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 mongo_client = MongoClient(os.getenv("MONGODB_URI"))
 db = mongo_client.get_database("knowledge_db")
 collection = db["tech_articles"]
-article_embeddings = OpenAIEmbeddings(model="text-embedding-3-large", dimensions=1536) # model used to embed article
-query_embeddings = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=1536) # model used to embed user queries
+query_embeddings = OpenAIEmbeddings(model="text-embedding-3-large", dimensions=1536) # model used to embed user queries
 
 def vector_search(query):
     query_embedding = query_embeddings.embed_query(query)
@@ -115,7 +114,7 @@ def get_date_categories_specific_articles(query):
     #if selected categories is 'All' and dates = [] could mean agent uses wrong tool (which may happen sometime) this is an edge case, 
     #this returns the following to let agent know
     if selected_categories == ['All'] and len(dates) == 0:
-        return "Please use QnA Tool"
+        return vector_search(query)
     
     return readDb_Functions.getNews(collection, selected_categories, dates, useGPT = False)
 
@@ -205,21 +204,23 @@ Assistant has access to the following tools:
 
 To use a tool, please use the following format:
 
-```
+
+
 Thought: Do I need to use a tool? Yes
 Action: the action to take, must be either 'QnA' or 'URL' or 'Date period and Categories'
 Action Input: the input to the action (do not change content of new input)
 Observation: the result of the action
 
-```
+
+
 Use QnA Tool for all questions unless,
 When you have a response to say to the Human, or if you do not need to use a tool, you MUST use the format:
 
-```
+
 Thought: Do I need to use a tool? No
 AI: [your response here]
 
-```
+
 
 Output note:
 
