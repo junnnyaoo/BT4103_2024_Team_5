@@ -261,25 +261,6 @@ def handle_schedule(channel_id, days_interval, selected_options_string):
     max_days = 120
 
     while next_schedule < max_days:
-        #-------------------BELOW FOR DEMO TESTING---------------------------
-        # # schedule 25 second later
-        # if count < 1:
-        #     now = datetime.datetime.now()
-        #     seconds, minutes = now.second + 20, now.minute
-        #     if seconds >= 60:
-        #         minutes += 1
-        #         seconds = seconds - 60
-        #     tomorrow = datetime.date.today() + datetime.timedelta(days = 0)
-        #     scheduled_time = datetime.time(now.hour, minutes, seconds)
-        #     schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
-        #     client.chat_scheduleMessage(
-        #         channel=channel_id,
-        #         text= "Here are the latest news filtered by selected category: " + selected_options_string,
-        #         post_at=schedule_timestamp
-        #     )
-        
-        # count += 1
-        #-------------------ABOVE FOR DEMO TESTING---------------------------
         
         tomorrow = datetime.date.today() + datetime.timedelta(days = next_schedule)
         scheduled_time = datetime.time(9, 0, 0)
@@ -342,7 +323,7 @@ def update_message(ack, body, say):
 
     #if user click this again it means he/she wants to reset schedule options
     #we need to get list of scheduled msgs to remove them if any
-    #limit can be changed, now its set to max of 100 users, assuming the slack workspace < 100 users
+    #limit can be changed, currently set to max of 100 users, assuming the slack workspace < 100 users
     scheduled_list = client.chat_scheduledMessages_list(limit = 12000)['scheduled_messages']
     
     if len(scheduled_list) == 0:
@@ -363,23 +344,6 @@ def update_message(ack, body, say):
         print("Deleting previously scheduled messages... " + str(count) + " / " + str(length_prev_msg))
         count += 1
         client.chat_deleteScheduledMessage(channel=body['channel']['id'],scheduled_message_id=msg_id)
-
-    #-------------------BELOW FOR DEMO TESTING---------------------------
-    # # schedule 25 second later
-    now = datetime.datetime.now()
-    seconds, minutes = now.second + 20, now.minute
-    if seconds >= 60:
-        minutes += 1
-        seconds = seconds - 60
-    tomorrow = datetime.date.today() + datetime.timedelta(days = 0)
-    scheduled_time = datetime.time(now.hour, minutes, seconds)
-    schedule_timestamp = datetime.datetime.combine(tomorrow, scheduled_time).timestamp()
-    client.chat_scheduleMessage(
-        channel=body['channel']['id'],
-        text= "Here are the latest news filtered by selected category: " + selected_options_string,
-        post_at=schedule_timestamp
-    )
-    #-------------------ABOVE FOR DEMO TESTING---------------------------
     
     #schedule the messages
     handle_schedule(body['channel']['id'], days_interval, selected_options_string)
