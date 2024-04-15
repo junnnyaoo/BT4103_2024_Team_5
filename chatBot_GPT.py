@@ -414,7 +414,13 @@ def messaage_handler(message, say, logger):
 
     #if its not any features, use agent to return result
     elif message['channel_type'] != 'channel' and 'bot_id' not in message.keys():
-        response = agent(message['text'])
+        try:
+            response = agent(message['text'])
+        except ValueError as e:
+            response = str(e)
+            if not response.startswith("Could not parse LLM output: `"):
+                raise e
+            response = response.removeprefix("Could not parse LLM output: `").removesuffix("`")
         say(response["output"])
 
 #--------------------------------------------------------------------------------------------------------------------
