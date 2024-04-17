@@ -420,6 +420,8 @@ def messaage_handler(message, say, logger):
             response = str(e)
             if not response.startswith("Could not parse LLM output: `"):
                 raise e
+            
+            # This issue is a common issue found and one way found in github was to remove the prefix and suffix of the following
             response = response.removeprefix("Could not parse LLM output: `").removesuffix("`")
         say(response["output"])
 
