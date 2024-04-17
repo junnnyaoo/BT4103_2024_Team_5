@@ -22,6 +22,8 @@ newsRev_BART.py
 newsRev_DeBERTa.py   
 are files that are used for holding the LLMs function on a seperate file.
 
+readDb_Functions.py - the file that is used for retrieval of news articles from MongoDb
+
 #### Extra Folder
 'News_Relevance_LLM' contains the different LLMs used for testing and their evaluation results. It also contains the dataset used for predicting the columns of each 
 LLM or GPT used for relevancy prediction.
